@@ -155,6 +155,7 @@ pub async fn send(
     .bind(id).bind(conversation_id).bind(user.id).bind(&input.body)
     .fetch_one(&pool).await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    crate::realtime::notify(conversation_id, id);
     Ok((StatusCode::CREATED, Json(Message {
         id, sender_id: user.id, body: input.body, created_at
     })))
