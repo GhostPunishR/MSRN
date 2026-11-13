@@ -6,6 +6,7 @@ package fr.msrn.app;
 import android.app.Activity;
 import fr.msrn.app.network.AuthApi;
 import fr.msrn.app.network.ConversationEvents;
+import fr.msrn.app.chat.EmojiSupport;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import android.os.Bundle;
@@ -23,6 +24,7 @@ import android.widget.Spinner;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -308,6 +310,34 @@ public final class MainActivity extends Activity {
         older.setEnabled(olderCursor != null && !loadingOlder);
         older.setOnClickListener(v -> loadOlderMessages(screen));
         EditText input = screen.findViewById(R.id.message_input);
+        HorizontalScrollView palette = screen.findViewById(R.id.emoji_palette);
+        LinearLayout emojiItems = screen.findViewById(R.id.emoji_items);
+        emojiItems.removeAllViews();
+        for (String emoji : EmojiSupport.EMOJI) {
+            Button emojiButton = new Button(this);
+            emojiButton.setText(emoji);
+            emojiButton.setTextSize(20f);
+            emojiButton.setAllCaps(false);
+            emojiButton.setMinWidth(0);
+            emojiButton.setMinimumWidth(0);
+            emojiButton.setPadding(10, 0, 10, 0);
+            emojiButton.setOnClickListener(v -> {
+                int start = Math.max(0, input.getSelectionStart());
+                int end = Math.max(0, input.getSelectionEnd());
+                int from = Math.min(start, end);
+                int to = Math.max(start, end);
+                int currentLength = input.length();
+                if (currentLength - (to - from) + emoji.length() > 4000) {
+                    Toast.makeText(this, "Message limité à 4000 caractères.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                input.getText().replace(from, to, emoji);
+                input.setSelection(from + emoji.length());
+            });
+            emojiItems.addView(emojiButton);
+        }
+        screen.findViewById(R.id.toggle_emoji).setOnClickListener(v ->
+            palette.setVisibility(palette.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
         input.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -458,7 +488,7 @@ public final class MainActivity extends Activity {
         StringBuilder text = new StringBuilder();
         for (JSONObject message : cachedMessages.values()) {
             text.append(message.optString("sender_id")).append(" : ")
-                .append(message.optString("body")).append("\n");
+                .append(EmojiSupport.display(message.optString("body"))).append("\n");
         }
         history.setText(text.length() == 0 ? "Aucun message." : text.toString());
         Button older = screen.findViewById(R.id.load_older_messages);
