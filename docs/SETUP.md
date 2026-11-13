@@ -135,3 +135,9 @@ When `POST /conversations/{id}/messages` successfully stores a message, the Rust
 The notification bus is process-local and is suitable only for one Rust server process. It does not guarantee delivery while offline, and there is no automatic reconnect yet. Android keeps manual refresh as a fallback. Message content is not included in WebSocket notifications. A production multi-instance deployment needs a durable or cross-instance notification mechanism, session revocation handling for active sockets, WSS, reconnection, and stronger security controls.
 
 Android debug builds permit HTTP and WS to the local emulator host only. Release builds must use HTTPS and WSS with an appropriately configured server.
+
+## Reconnect and resynchronization milestone
+
+The Android WebSocket client now retries transient failures with exponential delays of 1, 2, 4, 8, 16, and at most 30 seconds. It stops retrying when the conversation is closed or the Activity is stopped, and does not retry authorization failures (HTTP 401/403) or unknown conversations (HTTP 404). A successful handshake triggers a full HTTP reload of the most recent 100 messages to cover missed notifications. Lagged WebSocket notifications also trigger a reload. Android resumes the connection when returning to a visible chat.
+
+This is not a durable message queue. If more than 100 messages arrive while offline, older messages are not available through the current history API. A later milestone must add cursor-based pagination, background delivery where appropriate, and reconnection integration tests. Socket authorization is checked at handshake; active sockets are not yet terminated immediately on token revocation.
