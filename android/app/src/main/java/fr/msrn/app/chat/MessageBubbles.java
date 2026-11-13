@@ -36,8 +36,8 @@ public final class MessageBubbles {
         if (timestamp == null || timestamp.isEmpty()) return null;
         try {
             String normalized = timestamp.replace('T', ' ');
-            normalized = normalized.replaceFirst("([+-]\\\\d{2})$", "$1:00");
-            normalized = normalized.replaceFirst("([+-]\\\\d{2})(\\\\d{2})$", "$1:$2");
+            normalized = normalized.replaceFirst("([+-]\\d{2})$", "$1:00");
+            normalized = normalized.replaceFirst("([+-]\\d{2})(\\d{2})$", "$1:$2");
             return OffsetDateTime.parse(normalized, SERVER_TIME)
                 .atZoneSameInstant(ZoneId.systemDefault());
         } catch (RuntimeException ignored) {
