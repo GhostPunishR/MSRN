@@ -191,3 +191,9 @@ This milestone has not been compiled or integration-tested.
 The authenticated conversation WebSocket now accepts small JSON frames of the form `{"type":"typing","typing":true}` and `{"type":"typing","typing":false}`. The server verifies membership during the WebSocket handshake, attaches the authenticated sender UUID itself, and forwards events only to other subscribers of that conversation. It ignores malformed and oversized frames and rate-limits typing broadcasts to roughly one event per 700 milliseconds per connection. Typing is ephemeral and is never stored in PostgreSQL.
 
 Android sends a typing event at most once per 1.5 seconds during input, sends a stop event after 2.2 seconds without editing, and hides received indicators after 4 seconds even if a stop event was missed. Typing events are not a guarantee that a message will be sent. This implementation uses a process-local broadcast channel, so typing does not yet work between server replicas. Compilation and integration tests remain deferred.
+
+## Remote Wizz prototype
+
+While connected to a conversation WebSocket, Android can send the exact JSON frame `{"type":"wizz"}`. The server associates the event with the authenticated connection, relays it only to other subscribers of that conversation, and enforces a 10-second cooldown per connection. The receiving Android screen shows a transient status, animates a shake, and vibrates when hardware permits. The sender also sees a local confirmation and animation.
+
+Wizz events are ephemeral and are not stored or delivered to offline contacts. They are process-local and do not propagate across multiple server replicas. Cooldowns are per connection, not per user across devices or reconnects. The feature requires a live WebSocket connection and has not yet been compiled or integration-tested.
