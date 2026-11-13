@@ -1,0 +1,29 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# Rust
+target/
+**/*.rs.bk
+
+# Local secrets and development state
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+.idea/
+.vscode/
+.DS_Store
+*.log
+
+# Local databases and volumes
+*.sqlite
+*.db
+postgres-data/
