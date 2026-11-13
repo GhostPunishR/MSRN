@@ -141,3 +141,21 @@ Android debug builds permit HTTP and WS to the local emulator host only. Release
 The Android WebSocket client now retries transient failures with exponential delays of 1, 2, 4, 8, 16, and at most 30 seconds. It stops retrying when the conversation is closed or the Activity is stopped, and does not retry authorization failures (HTTP 401/403) or unknown conversations (HTTP 404). A successful handshake triggers a full HTTP reload of the most recent 100 messages to cover missed notifications. Lagged WebSocket notifications also trigger a reload. Android resumes the connection when returning to a visible chat.
 
 This is not a durable message queue. If more than 100 messages arrive while offline, older messages are not available through the current history API. A later milestone must add cursor-based pagination, background delivery where appropriate, and reconnection integration tests. Socket authorization is checked at handshake; active sockets are not yet terminated immediately on token revocation.
+
+## Paginated message history
+
+`GET /conversations/{id}/messages/page?limit=50` returns:
+
+```json
+{
+  "messages": [],
+  "next_before": null,
+  "has_more": false
+}
+```
+
+The response is ordered from oldest to newest within each page. A page contains 1 to 100 messages (default 50). When `has_more` is true, pass the returned `next_before` UUID as the `before` query parameter to retrieve older messages. An unknown or cross-conversation cursor returns HTTP 400. Membership is checked before accessing history.
+
+The existing `GET /conversations/{id}/messages` endpoint remains available for compatibility. Android now uses the paginated endpoint and a "Charger les anciens messages" button. Incoming WebSocket notifications reload the latest page and merge it with locally loaded older pages.
+
+Limitations: the Android cache is in memory, not persisted across process restarts. There is no scroll-position preservation, search, retention policy, or full offline history. Messages created with identical timestamps are consistently ordered by UUID as a tie-breaker. The paginated API and Android client still require local compilation and integration testing.
