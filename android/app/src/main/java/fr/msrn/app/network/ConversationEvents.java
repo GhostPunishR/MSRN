@@ -33,6 +33,7 @@ public final class ConversationEvents {
 
     public interface Listener {
         void onMessageChanged();
+        void onMessageCreated(String messageId);
         void onConnected();
         void onDisconnected();
         void onTyping(boolean typing);
@@ -75,17 +76,23 @@ public final class ConversationEvents {
             @Override
             public void onMessage(WebSocket webSocket, String text) {
                 try {
-                    String type = new JSONObject(text).optString("type");
+                    JSONObject event = new JSONObject(text);
+                    String type = event.optString("type");
                     if ("wizz".equals(type)) {
                         handler.post(() -> {
                             if (valid(expectedGeneration) && !completed) listener.onWizz();
                         });
                     } else if ("typing".equals(type)) {
-                        boolean typing = new JSONObject(text).optBoolean("typing");
+                        boolean typing = event.optBoolean("typing");
                         handler.post(() -> {
                             if (valid(expectedGeneration) && !completed) listener.onTyping(typing);
                         });
-                    } else if ("message_created".equals(type) || "resync_required".equals(type)) {
+                    } else if ("message_created".equals(type)) {
+                        String messageId = event.optString("message_id");
+                        handler.post(() -> {
+                            if (valid(expectedGeneration) && !completed) listener.onMessageCreated(messageId);
+                        });
+                    } else if ("resync_required".equals(type)) {
                         handler.post(() -> {
                             if (valid(expectedGeneration) && !completed) listener.onMessageChanged();
                         });

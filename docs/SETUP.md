@@ -272,3 +272,28 @@ Executed successfully:
 The APK is generated at `android/app/build/outputs/apk/debug/app-debug.apk`; the Android test report is at `android/app/build/reports/tests/testDebugUnitTest/index.html`.
 
 No emulator/device run or end-to-end two-client messaging test was performed. Successful migrations and the health check do not replace database-backed API integration tests.
+
+## Optional conversation sounds
+
+Open Android **Profil**, scroll to **Sons de conversation**, and enable either **Son des messages reçus** or **Son des Wizz reçus**. Both settings start disabled and are saved independently on this device, including across application restarts. Signing out does not reset these device preferences. The profile now scrolls so all controls remain reachable on smaller screens.
+
+Sounds use Android's native notification tones. They play only for the currently visible conversation while the Activity is in the foreground, with nonzero notification volume, normal ringer mode, and Do Not Disturb off. There is a shared 1.5-second sound cooldown. Existing Wizz animation and vibration remain separate from these sound preferences. No background notifications or sound assets from another messenger are introduced.
+
+Only live `message_created` events can request a message sound. The Android client waits for HTTP history to confirm the sender, excludes its own messages and already loaded IDs, and consumes each pending event once. Superseded HTTP requests do not discard the pending live events. Navigation, disconnection, resynchronization, and backgrounding clear the pending queue. At most 100 events are retained while waiting for history. Initial history, older pages, manual refreshes without live events, and reconnection backlogs stay silent. Wizz sounds are played only on receipt, subject to the existing receive cooldown.
+
+Local software verification:
+
+```sh
+gradle -p android --no-daemon --max-workers=2 :app:assembleDebug :app:testDebugUnitTest
+```
+
+The debug APK was generated and all 12 Android JVM tests passed, including 7 new tests for live-event matching, sender checks, duplicate/cached events, reset behavior, malformed IDs, and bounded pending state. Independent static review found no blocking defects. No server endpoint or SQL migration changed.
+
+Device verification remains outstanding because no Android emulator/device was available for this task. Before treating sound behavior as device-validated, use two Android emulators connected to the same local Rust server:
+
+1. Install the debug APK on both emulators, sign in with two accepted contacts, and open their conversation. With both sound switches disabled, receiving a message or Wizz should remain silent.
+2. Enable message sounds on one emulator and send from the other. Confirm a short notification tone on receipt, with no sound for own messages, repeated refreshes, older history, or reconnect backlogs.
+3. Enable only Wizz sounds and confirm a different tone for a received Wizz. Verify the two switches work independently and that rapid events respect the shared sound cooldown.
+4. Restart the app and confirm both switches retain their values. Sign in again to resume messaging, since authentication sessions still live only in process memory.
+5. Repeat with notification volume zero, silent mode, vibrate mode, and each Do Not Disturb mode. Confirm no sound, then restore normal audio and confirm receipt sounds resume.
+6. Put the receiving app in the background during an incoming event. Confirm playback stops, no background sound occurs, and returning to the chat resynchronizes without replaying alerts. Check that the profile settings remain accessible by scrolling on a small display.

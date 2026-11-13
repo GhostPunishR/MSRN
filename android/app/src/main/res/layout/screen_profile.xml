@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (C) 2026 GhostPunishR and contributors -->
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
+    android:fillViewport="true">
+<LinearLayout
+    android:layout_width="match_parent" android:layout_height="wrap_content"
     android:padding="20dp" android:orientation="vertical">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Mon profil" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
     <EditText android:id="@+id/profile_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:hint="Pseudo" android:singleLine="true" android:maxLength="80" />
@@ -32,7 +35,19 @@
         android:textAllCaps="false" />
     <TextView android:id="@+id/presence_status" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:text="Connectez-vous pour choisir un statut." />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginTop="16dp" android:text="@string/conversation_sounds_title"
+        android:textStyle="bold" />
+    <Switch android:id="@+id/message_sound_switch" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:minHeight="48dp"
+        android:text="@string/message_sound_label" />
+    <Switch android:id="@+id/wizz_sound_switch" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:minHeight="48dp"
+        android:text="@string/wizz_sound_label" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="@string/conversation_sounds_hint" />
     <Button android:id="@+id/open_auth" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Mon compte MSRN" android:textAllCaps="false" />
     <Button android:id="@+id/check_server" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="Tester le serveur Rust" android:textAllCaps="false" />
     <TextView android:id="@+id/server_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Serveur non testé. En émulateur : 10.0.2.2:3000" android:textColor="#65758B" />
 </LinearLayout>
+</ScrollView>

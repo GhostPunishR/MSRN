@@ -8,6 +8,8 @@ import fr.msrn.app.network.AuthApi;
 import fr.msrn.app.network.ConversationEvents;
 import fr.msrn.app.chat.EmojiSupport;
 import fr.msrn.app.chat.MessageBubbles;
+import fr.msrn.app.chat.MessageSoundQueue;
+import fr.msrn.app.chat.ChatSounds;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import android.os.Bundle;
@@ -30,6 +32,7 @@ import android.widget.ScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.Switch;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -44,6 +47,8 @@ import java.util.concurrent.Executors;
 public final class MainActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final ConversationEvents events = new ConversationEvents();
+    private final MessageSoundQueue messageSounds = new MessageSoundQueue();
+    private ChatSounds chatSounds;
     private String activeConversationId;
     private String activeContactName;
     private String activeContactProfile = "";
@@ -98,6 +103,7 @@ public final class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         nickname = getPreferences(MODE_PRIVATE).getString("nickname", "Moi");
+        chatSounds = new ChatSounds(this, getPreferences(MODE_PRIVATE));
 
         findViewById(R.id.tab_contacts).setOnClickListener(v -> showScreen(R.layout.screen_contacts));
         findViewById(R.id.tab_chat).setOnClickListener(v -> showScreen(R.layout.screen_chat));
@@ -108,6 +114,7 @@ public final class MainActivity extends Activity {
 
     private void showScreen(int layoutId) {
         events.close();
+        messageSounds.clear();
         contactsHandler.removeCallbacks(contactsRefresh);
         typingHandler.removeCallbacks(stopTyping);
         typingHandler.removeCallbacks(hideTyping);
@@ -130,6 +137,7 @@ public final class MainActivity extends Activity {
             screen.findViewById(R.id.send_friend_request).setOnClickListener(v -> sendInvitation(screen));
             loadRequests(screen);
         } else if (layoutId == R.layout.screen_profile) {
+            setupSoundPreferences(screen);
             setupPresence(screen);
             EditText name = screen.findViewById(R.id.profile_name);
             Spinner avatar = screen.findViewById(R.id.avatar_spinner);
@@ -231,6 +239,17 @@ public final class MainActivity extends Activity {
         } else if (layoutId == R.layout.screen_auth) {
             setupAuthScreen(screen);
         }
+    }
+
+    private void setupSoundPreferences(View screen) {
+        Switch messages = screen.findViewById(R.id.message_sound_switch);
+        Switch wizz = screen.findViewById(R.id.wizz_sound_switch);
+        messages.setChecked(getPreferences(MODE_PRIVATE).getBoolean(ChatSounds.MESSAGE_PREF, false));
+        wizz.setChecked(getPreferences(MODE_PRIVATE).getBoolean(ChatSounds.WIZZ_PREF, false));
+        messages.setOnCheckedChangeListener((button, enabled) ->
+            getPreferences(MODE_PRIVATE).edit().putBoolean(ChatSounds.MESSAGE_PREF, enabled).apply());
+        wizz.setOnCheckedChangeListener((button, enabled) ->
+            getPreferences(MODE_PRIVATE).edit().putBoolean(ChatSounds.WIZZ_PREF, enabled).apply());
     }
 
     private void setupPresence(View screen) {
@@ -454,6 +473,7 @@ public final class MainActivity extends Activity {
                     if (screen.getParent() != null && token.equals(sessionToken)
                         && conversationId.equals(activeConversationId)) {
                         TextView status = screen.findViewById(R.id.chat_status);
+                        messageSounds.clear();
                         status.setText("Temps réel connecté.");
                     }
                 });
@@ -464,14 +484,23 @@ public final class MainActivity extends Activity {
                 runOnUiThread(() -> {
                     if (screen.getParent() != null && token.equals(sessionToken)
                         && conversationId.equals(activeConversationId)) {
+                        messageSounds.clear();
                         loadMessages(screen);
                     }
                 });
             }
 
             @Override
+            public void onMessageCreated(String messageId) {
+                if (!foreground || screen.getParent() == null || !token.equals(sessionToken)
+                    || !conversationId.equals(activeConversationId)) return;
+                messageSounds.onMessageCreated(messageId, cachedMessages.containsKey(messageId));
+                loadMessages(screen);
+            }
+
+            @Override
             public void onWizz() {
-                if (screen.getParent() == null || !token.equals(sessionToken)
+                if (!foreground || screen.getParent() == null || !token.equals(sessionToken)
                     || !conversationId.equals(activeConversationId)) return;
                 long now = android.os.SystemClock.elapsedRealtime();
                 if (now - lastWizzReceived < 2000) return;
@@ -479,6 +508,7 @@ public final class MainActivity extends Activity {
                 ((TextView) screen.findViewById(R.id.chat_status))
                     .setText("Votre contact vous a envoyé un Wizz !");
                 playWizz(screen);
+                chatSounds.wizzReceived();
             }
 
             @Override
@@ -497,6 +527,7 @@ public final class MainActivity extends Activity {
                     if (screen.getParent() != null && token.equals(sessionToken)
                         && conversationId.equals(activeConversationId)) {
                         TextView status = screen.findViewById(R.id.chat_status);
+                        messageSounds.clear();
                         status.setText("Temps réel déconnecté. Actualisez manuellement.");
                     }
                 });
@@ -564,11 +595,17 @@ public final class MainActivity extends Activity {
                     if (cachedMessages.isEmpty()) {
                         olderCursor = page.optString("next_before", null);
                     }
+                    boolean incomingSound = false;
                     for (int i = 0; i < messages.length(); i++) {
                         JSONObject message = messages.optJSONObject(i);
-                        if (message != null) cachedMessages.put(message.optString("id"), message);
+                        if (message != null) {
+                            String id = message.optString("id");
+                            incomingSound |= messageSounds.consume(id, message.optString("sender_id"), myUserId);
+                            cachedMessages.put(id, message);
+                        }
                     }
                     renderCachedMessages(screen);
+                    if (foreground && incomingSound) chatSounds.messageReceived();
                     if (foreground && messages.length() > 0) {
                         JSONObject newest = messages.optJSONObject(messages.length() - 1);
                         if (newest != null) {
@@ -951,6 +988,8 @@ public final class MainActivity extends Activity {
         typingHandler.removeCallbacks(stopTyping);
         typingHandler.removeCallbacks(hideTyping);
         foreground = false;
+        messageSounds.clear();
+        chatSounds.stop();
         contactsHandler.removeCallbacks(contactsRefresh);
         presenceHandler.removeCallbacks(presencePulse);
         events.close();
@@ -961,6 +1000,7 @@ public final class MainActivity extends Activity {
     protected void onStart() {
         super.onStart();
         foreground = true;
+        chatSounds.start();
         presenceHandler.removeCallbacks(presencePulse);
         presenceHandler.post(presencePulse);
         contactsHandler.removeCallbacks(contactsRefresh);
@@ -979,6 +1019,8 @@ public final class MainActivity extends Activity {
     @Override
     protected void onDestroy() {
         events.close();
+        messageSounds.clear();
+        chatSounds.stop();
         io.shutdownNow();
         super.onDestroy();
     }

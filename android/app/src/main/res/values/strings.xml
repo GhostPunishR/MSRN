@@ -3,4 +3,8 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <resources>
     <string name="app_name">MSRN</string>
+    <string name="conversation_sounds_title">Sons de conversation</string>
+    <string name="message_sound_label">Son des messages reçus</string>
+    <string name="wizz_sound_label">Son des Wizz reçus</string>
+    <string name="conversation_sounds_hint">Dans la conversation ouverte, selon le volume et le mode sonore du téléphone. Réglages mémorisés sur cet appareil.</string>
 </resources>
