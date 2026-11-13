@@ -96,3 +96,17 @@ curl -i -X POST http://127.0.0.1:3000/auth/register \\
   -H 'Content-Type: application/json' \\
   -d '{"username":"ghost_123","display_name":"Ghost","password":"a-strong-password"}'
 ```
+
+## Friends and contacts prototype
+
+With two locally registered accounts, authenticate each user and use the returned bearer token:
+
+- `GET /contacts`: list accepted contacts for the authenticated user.
+- `GET /friends/requests`: list incoming invitations.
+- `POST /friends/requests`: JSON `{"username":"other_account"}` to invite an existing account.
+- `POST /friends/requests/{id}/accept`: accept an incoming invitation.
+- `POST /friends/requests/{id}/decline`: decline an incoming invitation.
+
+All routes require `Authorization: Bearer <token>`. Acceptance inserts reciprocal contact relationships in one database transaction. The server applies a maximum of 200 contacts returned and 100 incoming invitations returned per request. Pagination, rate limits, blocking, and public deployment protections are not yet implemented.
+
+Android Contacts and Amis now load real server data when a session is active. Messages and Wizz remain local demonstrations. The Android token remains in process memory only.
