@@ -10,10 +10,39 @@ import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import org.json.JSONObject;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
+import java.util.Locale;
 
 /** Creates safe text-only message bubbles without modifying stored messages. */
 public final class MessageBubbles {
     private MessageBubbles() { }
+
+    private static final DateTimeFormatter SERVER_TIME = new DateTimeFormatterBuilder()
+        .appendPattern("uuuu-MM-dd HH:mm:ss")
+        .appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
+        .appendOffset("+HH:mm", "Z")
+        .toFormatter(Locale.ROOT);
+    private static final DateTimeFormatter LOCAL_TIME =
+        DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
+
+    public static String localTime(String timestamp) {
+        if (timestamp == null || timestamp.isEmpty()) return "";
+        try {
+            // PostgreSQL timestamptz::text commonly uses a space and +00 or +0200.
+            String normalized = timestamp.replace('T', ' ');
+            normalized = normalized.replaceFirst("([+-]\\\\d{2})$", "$1:00");
+            normalized = normalized.replaceFirst("([+-]\\\\d{2})(\\\\d{2})$", "$1:$2");
+            return OffsetDateTime.parse(normalized, SERVER_TIME)
+                .atZoneSameInstant(ZoneId.systemDefault()).format(LOCAL_TIME);
+        } catch (RuntimeException ignored) {
+            // Unknown server format: do not mislabel a timestamp as local time.
+            return "";
+        }
+    }
 
     private static int dp(Context context, int value) {
         return Math.round(value * context.getResources().getDisplayMetrics().density);
@@ -43,7 +72,7 @@ public final class MessageBubbles {
 
         TextView detail = new TextView(context);
         String timestamp = message.optString("created_at");
-        String time = timestamp.length() >= 16 ? timestamp.substring(11, 16) : "";
+        String time = localTime(timestamp);
         detail.setText((mine ? "Vous" : "Contact") + (time.isEmpty() ? "" : " · " + time));
         detail.setTextColor(Color.rgb(98, 112, 131));
         detail.setTextSize(12f);
