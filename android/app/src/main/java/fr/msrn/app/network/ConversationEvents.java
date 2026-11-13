@@ -35,6 +35,7 @@ public final class ConversationEvents {
         void onMessageChanged();
         void onConnected();
         void onDisconnected();
+        void onTyping(boolean typing);
     }
 
     public void connect(String token, String conversationId, Listener listener) {
@@ -74,7 +75,12 @@ public final class ConversationEvents {
             public void onMessage(WebSocket webSocket, String text) {
                 try {
                     String type = new JSONObject(text).optString("type");
-                    if ("message_created".equals(type) || "resync_required".equals(type)) {
+                    if ("typing".equals(type)) {
+                        boolean typing = new JSONObject(text).optBoolean("typing");
+                        handler.post(() -> {
+                            if (valid(expectedGeneration) && !completed) listener.onTyping(typing);
+                        });
+                    } else if ("message_created".equals(type) || "resync_required".equals(type)) {
                         handler.post(() -> {
                             if (valid(expectedGeneration) && !completed) listener.onMessageChanged();
                         });
@@ -116,6 +122,12 @@ public final class ConversationEvents {
 
     private boolean valid(int expectedGeneration) {
         return active && generation == expectedGeneration;
+    }
+
+    public void sendTyping(boolean typing) {
+        if (active && socket != null) {
+            socket.send("{\"type\":\"typing\",\"typing\":" + typing + "}");
+        }
     }
 
     public void close() {
