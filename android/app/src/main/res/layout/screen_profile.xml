@@ -7,6 +7,15 @@
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Mon profil" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
     <EditText android:id="@+id/profile_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:hint="Pseudo" android:singleLine="true" android:maxLength="80" />
     <Button android:id="@+id/save_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enregistrer localement" android:textAllCaps="false" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Mon statut de présence" android:layout_marginTop="16dp" />
+    <Spinner android:id="@+id/presence_spinner" android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <Button android:id="@+id/save_presence" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Mettre à jour mon statut"
+        android:textAllCaps="false" />
+    <TextView android:id="@+id/presence_status" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Connectez-vous pour choisir un statut." />
     <Button android:id="@+id/open_auth" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Mon compte MSRN" android:textAllCaps="false" />
     <Button android:id="@+id/check_server" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="24dp" android:text="Tester le serveur Rust" android:textAllCaps="false" />
     <TextView android:id="@+id/server_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:text="Serveur non testé. En émulateur : 10.0.2.2:3000" android:textColor="#65758B" />
