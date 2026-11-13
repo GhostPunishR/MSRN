@@ -3,6 +3,7 @@
 
 mod auth;
 mod friends;
+mod messages;
 
 use std::{env, net::SocketAddr, path::Path};
 
@@ -31,6 +32,8 @@ fn app(pool: PgPool) -> Router {
         .route("/auth/me", get(auth::me))
         .route("/auth/logout", post(auth::logout))
         .route("/contacts", get(friends::contacts))
+        .route("/conversations/with/{username}", post(messages::open_direct))
+        .route("/conversations/{id}/messages", get(messages::history).post(messages::send))
         .route("/friends/requests", get(friends::incoming).post(friends::send_request))
         .route("/friends/requests/{id}/accept", post(friends::accept_request))
         .route("/friends/requests/{id}/decline", post(friends::decline_request))
