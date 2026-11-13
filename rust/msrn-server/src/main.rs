@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 mod auth;
+mod friends;
 
 use std::{env, net::SocketAddr, path::Path};
 
@@ -29,6 +30,10 @@ fn app(pool: PgPool) -> Router {
         .route("/auth/login", post(auth::login))
         .route("/auth/me", get(auth::me))
         .route("/auth/logout", post(auth::logout))
+        .route("/contacts", get(friends::contacts))
+        .route("/friends/requests", get(friends::incoming).post(friends::send_request))
+        .route("/friends/requests/{id}/accept", post(friends::accept_request))
+        .route("/friends/requests/{id}/decline", post(friends::decline_request))
         .layer(DefaultBodyLimit::max(4096))
         .with_state(pool)
 }
