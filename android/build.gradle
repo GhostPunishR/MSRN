@@ -1,0 +1,6 @@
+// Copyright (C) 2026 GhostPunishR and contributors
+// SPDX-License-Identifier: AGPL-3.0-only
+
+plugins {
+    id 'com.android.application' version '8.7.3' apply false
+}
