@@ -175,3 +175,13 @@ Authenticated `GET /profile/me` returns `id`, `username`, `display_name`, and `a
 Android's Profile screen now loads and saves the server-side nickname and a choice of six built-in emoji avatars. Contacts display the synchronized nickname and selected avatar. Existing accounts receive avatar 1 by default. This is a preset-avatar milestone, not user image upload or image hosting. Avatar selection and nickname updates require a signed-in session. Existing `/auth/me` response fields remain unchanged.
 
 Compilation and integration tests remain deferred until a local development environment is available.
+
+## Personal message and conversation profile
+
+Migration `202611130007_personal_message.sql` adds a personal message to user profiles, defaulting to an empty string. The server accepts up to 160 Unicode characters and rejects control characters. An empty string clears the message.
+
+Authenticated `PUT /profile/message` accepts `{"personal_message":"Disponible pour discuter"}` and returns the updated profile. `GET /profile/me` and `PUT /profile/me` also return `personal_message` while preserving the existing nickname and avatar update contract. Accepted contacts expose their personal message through `GET /contacts`.
+
+Android allows editing the personal message on the Profile screen. The contacts list and conversation header show the selected contact's avatar, nickname, presence, and personal message. The conversation header uses the contact snapshot from the contacts list and does not yet receive live profile-change events. No user-provided HTML or image uploads are accepted.
+
+This milestone has not been compiled or integration-tested.
