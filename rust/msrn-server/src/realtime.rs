@@ -168,4 +168,32 @@ mod tests {
         let json = serde_json::to_string(&event).unwrap();
         assert!(json.contains("\"type\":\"message_created\""));
     }
+    #[test]
+    fn typing_event_is_scoped_and_sender_is_server_controlled() {
+        let event = TypingEvent {
+            kind: "typing", conversation_id: Uuid::nil(),
+            sender_id: Uuid::nil(), typing: true,
+        };
+        let json = serde_json::to_value(event).unwrap();
+        assert_eq!(json["type"], "typing");
+        assert_eq!(json["typing"], true);
+        assert!(json.get("conversation_id").is_some());
+        assert!(json.get("sender_id").is_some());
+        let input: TypingInput = serde_json::from_str(
+            r#"{"type":"typing","typing":false,"sender_id":"spoofed"}"#,
+        ).unwrap();
+        assert_eq!(input.kind, "typing");
+        assert!(!input.typing);
+    }
+
+    #[test]
+    fn wizz_event_has_conversation_and_sender() {
+        let json = serde_json::to_value(WizzEvent {
+            kind: "wizz", conversation_id: Uuid::nil(), sender_id: Uuid::nil(),
+        }).unwrap();
+        assert_eq!(json["type"], "wizz");
+        assert!(json.get("conversation_id").is_some());
+        assert!(json.get("sender_id").is_some());
+    }
+
 }
