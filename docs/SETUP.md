@@ -209,3 +209,9 @@ The chat history renders common legacy text shortcuts such as `:-)`, `:)`, `:D`,
 Android renders message history in a vertical collection of text-only bubbles. The signed-in user ID from the authentication response is compared with each message's `sender_id`: own messages align right in blue, and incoming messages align left in grey. The existing display-only emoji conversion still applies. Each bubble shows a short sender label and the `HH:mm` substring from the server-provided `created_at` field. This is server timestamp display, not a conversion into the device's local timezone.
 
 The existing keyset pagination and WebSocket-triggered history refresh still populate the same cached message collection. The view scrolls to the bottom if it was already near the bottom. No server schema or API change is required. Build and emulator verification remain pending.
+
+## Chat scroll retention and local timestamps
+
+When an older message page is prepended, Android records the previous scroll position and history height, re-renders the cached bubbles, and offsets the scroll position by the resulting height difference. This keeps the reader near the same visible messages instead of jumping to the bottom. On ordinary message refreshes, the chat auto-scrolls only if the reader was already near the bottom.
+
+Message bubble timestamps are parsed as offset-aware PostgreSQL `timestamptz::text` values, including `+HH`, `+HHMM`, and `+HH:MM` offsets. Android converts the instant to the device's current timezone before formatting `HH:mm`. Unknown formats show no time instead of an incorrectly labeled local time. No database or HTTP API changes are required. Device testing is still pending.
