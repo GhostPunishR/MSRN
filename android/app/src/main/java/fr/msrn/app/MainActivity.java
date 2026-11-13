@@ -30,7 +30,8 @@ import java.util.concurrent.Executors;
 
 public final class MainActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
-    private final StringBuilder demoMessages = new StringBuilder("Camille : Salut !\n");
+    private String activeConversationId;
+    private String activeContactName;
     private String sessionToken;
     private String nickname = "Moi";
 
@@ -57,27 +58,7 @@ public final class MainActivity extends Activity {
             screen.findViewById(R.id.refresh_contacts).setOnClickListener(v -> loadContacts(screen));
             loadContacts(screen);
         } else if (layoutId == R.layout.screen_chat) {
-            TextView history = screen.findViewById(R.id.chat_history);
-            history.setText(demoMessages.toString());
-            EditText input = screen.findViewById(R.id.message_input);
-            screen.findViewById(R.id.send_message).setOnClickListener(v -> {
-                String message = input.getText().toString().trim();
-                if (message.isEmpty()) return;
-                demoMessages.append(nickname).append(" : ").append(message).append("\n");
-                history.setText(demoMessages.toString());
-                input.setText("");
-            });
-            screen.findViewById(R.id.send_wizz).setOnClickListener(v -> {
-                demoMessages.append(nickname).append(" a envoyé un Wizz !\n");
-                history.setText(demoMessages.toString());
-                Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-                if (vibrator != null && vibrator.hasVibrator()) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
-                }
-                screen.animate().translationX(14f).setDuration(70).withEndAction(
-                    () -> screen.animate().translationX(0f).setDuration(70).start()
-                ).start();
-            });
+            setupChat(screen);
         } else if (layoutId == R.layout.screen_friends) {
             screen.findViewById(R.id.refresh_requests).setOnClickListener(v -> loadRequests(screen));
             screen.findViewById(R.id.send_friend_request).setOnClickListener(v -> sendInvitation(screen));
@@ -101,6 +82,122 @@ public final class MainActivity extends Activity {
         } else if (layoutId == R.layout.screen_auth) {
             setupAuthScreen(screen);
         }
+    }
+
+    private void openConversation(String username) {
+        if (sessionToken == null) {
+            showScreen(R.layout.screen_auth);
+            return;
+        }
+        String token = sessionToken;
+        activeConversationId = null;
+        activeContactName = username;
+        showScreen(R.layout.screen_chat);
+        io.execute(() -> {
+            try {
+                JSONObject conversation = AuthApi.openConversation(token, username);
+                String id = conversation.getString("id");
+                runOnUiThread(() -> {
+                    if (!token.equals(sessionToken) || !username.equals(activeContactName)) return;
+                    activeConversationId = id;
+                    FrameLayout container = findViewById(R.id.screen_container);
+                    if (container.findViewById(R.id.chat_history) != null) {
+                        loadMessages(container);
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    FrameLayout container = findViewById(R.id.screen_container);
+                    TextView status = container.findViewById(R.id.chat_status);
+                    if (status != null) status.setText("Conversation inaccessible. Vérifiez votre liste de contacts.");
+                });
+            }
+        });
+    }
+
+    private void setupChat(View screen) {
+        TextView title = screen.findViewById(R.id.chat_title);
+        TextView status = screen.findViewById(R.id.chat_status);
+        title.setText(activeContactName == null ? "Choisissez un contact" : "@" + activeContactName);
+        Button send = screen.findViewById(R.id.send_message);
+        Button refresh = screen.findViewById(R.id.refresh_messages);
+        EditText input = screen.findViewById(R.id.message_input);
+        send.setEnabled(sessionToken != null && activeConversationId != null);
+        refresh.setEnabled(sessionToken != null && activeConversationId != null);
+        status.setText(activeConversationId == null ? "Choisissez un contact dans Contacts." : "Chargement...");
+        if (activeConversationId != null) loadMessages(screen);
+        refresh.setOnClickListener(v -> loadMessages(screen));
+        send.setOnClickListener(v -> {
+            if (sessionToken == null || activeConversationId == null) return;
+            String body = input.getText().toString();
+            if (body.trim().isEmpty() || body.length() > 4000) return;
+            String token = sessionToken;
+            String conversationId = activeConversationId;
+            send.setEnabled(false);
+            status.setText("Envoi...");
+            io.execute(() -> {
+                try {
+                    AuthApi.sendMessage(token, conversationId, body);
+                    runOnUiThread(() -> {
+                        if (screen.getParent() == null) return;
+                        input.setText("");
+                        send.setEnabled(true);
+                        loadMessages(screen);
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        if (screen.getParent() == null) return;
+                        send.setEnabled(true);
+                        status.setText("Message non envoyé. Réessayez.");
+                    });
+                }
+            });
+        });
+        screen.findViewById(R.id.send_wizz).setOnClickListener(v -> {
+            status.setText("Wizz local uniquement, non transmis.");
+            Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+            if (vibrator != null && vibrator.hasVibrator()) {
+                vibrator.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
+            }
+            screen.animate().translationX(14f).setDuration(70).withEndAction(
+                () -> screen.animate().translationX(0f).setDuration(70).start()
+            ).start();
+        });
+    }
+
+    private void loadMessages(View screen) {
+        if (sessionToken == null || activeConversationId == null) return;
+        String token = sessionToken;
+        String conversationId = activeConversationId;
+        TextView history = screen.findViewById(R.id.chat_history);
+        TextView status = screen.findViewById(R.id.chat_status);
+        Button send = screen.findViewById(R.id.send_message);
+        Button refresh = screen.findViewById(R.id.refresh_messages);
+        send.setEnabled(true);
+        refresh.setEnabled(true);
+        status.setText("Chargement des messages...");
+        io.execute(() -> {
+            try {
+                JSONArray messages = AuthApi.messages(token, conversationId);
+                StringBuilder text = new StringBuilder();
+                for (int i = 0; i < messages.length(); i++) {
+                    JSONObject message = messages.optJSONObject(i);
+                    if (message == null) continue;
+                    text.append(message.optString("sender_id")).append(" : ")
+                        .append(message.optString("body")).append("\\n");
+                }
+                runOnUiThread(() -> {
+                    if (screen.getParent() == null || !token.equals(sessionToken)
+                        || !conversationId.equals(activeConversationId)) return;
+                    history.setText(text.length() == 0 ? "Aucun message." : text.toString());
+                    status.setText("100 derniers messages maximum. Actualisation manuelle.");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) status.setText("Impossible de charger les messages.");
+                });
+            }
+        });
     }
 
     private void loadContacts(View screen) {
@@ -128,6 +225,8 @@ public final class MainActivity extends Activity {
                         item.setText(user.optString("display_name") + " (@" + user.optString("username") + ")");
                         item.setTextSize(18f);
                         item.setPadding(0, 16, 0, 16);
+                        String username = user.optString("username");
+                        item.setOnClickListener(v -> openConversation(username));
                         list.addView(item);
                     }
                 });
@@ -259,6 +358,8 @@ public final class MainActivity extends Activity {
                     sessionToken = null;
                     runOnUiThread(() -> {
                         identity.setText("Non connecté");
+                        activeConversationId = null;
+                        activeContactName = null;
                         status.setText("Déconnecté");
                         login.setEnabled(true);
                         register.setEnabled(true);
