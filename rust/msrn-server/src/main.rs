@@ -1,9 +1,11 @@
 // Copyright (C) 2026 GhostPunishR and contributors
 // SPDX-License-Identifier: AGPL-3.0-only
 
+mod auth;
+
 use std::{env, net::SocketAddr, path::Path};
 
-use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
+use axum::{extract::{DefaultBodyLimit, State}, http::StatusCode, routing::{get, post}, Json, Router};
 use msrn_protocol::HealthResponse;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing_subscriber::EnvFilter;
@@ -21,7 +23,14 @@ async fn health(State(pool): State<PgPool>) -> Result<Json<HealthResponse>, Stat
 }
 
 fn app(pool: PgPool) -> Router {
-    Router::new().route("/health", get(health)).with_state(pool)
+    Router::new()
+        .route("/health", get(health))
+        .route("/auth/register", post(auth::register))
+        .route("/auth/login", post(auth::login))
+        .route("/auth/me", get(auth::me))
+        .route("/auth/logout", post(auth::logout))
+        .layer(DefaultBodyLimit::max(4096))
+        .with_state(pool)
 }
 
 #[tokio::main]
