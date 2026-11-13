@@ -4,7 +4,6 @@
 package fr.msrn.app;
 
 import android.app.Activity;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -21,6 +20,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -116,8 +116,13 @@ public final class MainActivity extends Activity {
                 connection.setReadTimeout(3000);
                 int code = connection.getResponseCode();
                 try (InputStream stream = code < 400 ? connection.getInputStream() : connection.getErrorStream()) {
-                    byte[] bytes = stream.readNBytes(4096);
-                    result = "HTTP " + code + " : " + new String(bytes, StandardCharsets.UTF_8);
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    byte[] chunk = new byte[1024];
+                    int read;
+                    while (buffer.size() < 4096 && (read = stream.read(chunk, 0, Math.min(chunk.length, 4096 - buffer.size()))) != -1) {
+                        buffer.write(chunk, 0, read);
+                    }
+                    result = "HTTP " + code + " : " + buffer.toString(StandardCharsets.UTF_8.name());
                 }
             } catch (Exception e) {
                 result = "Serveur inaccessible. Vérifier le démarrage Rust et PostgreSQL.";
