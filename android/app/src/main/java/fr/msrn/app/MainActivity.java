@@ -498,7 +498,14 @@ public final class MainActivity extends Activity {
         boolean wasAtBottom = !preservePosition && oldScrollY + scroll.getHeight()
             >= oldHeight - 64;
         history.removeAllViews();
+        String previousDate = null;
         for (JSONObject message : cachedMessages.values()) {
+            String timestamp = message.optString("created_at");
+            String dateKey = MessageBubbles.localDateKey(timestamp);
+            if (!dateKey.isEmpty() && !dateKey.equals(previousDate)) {
+                MessageBubbles.addDateSeparator(history, MessageBubbles.dateLabel(timestamp));
+            }
+            previousDate = dateKey;
             MessageBubbles.add(history, message, myUserId);
         }
         if (cachedMessages.isEmpty()) {
