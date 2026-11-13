@@ -11,6 +11,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import org.json.JSONObject;
 import java.time.OffsetDateTime;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.FormatStyle;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -29,19 +32,51 @@ public final class MessageBubbles {
     private static final DateTimeFormatter LOCAL_TIME =
         DateTimeFormatter.ofPattern("HH:mm", Locale.getDefault());
 
-    public static String localTime(String timestamp) {
-        if (timestamp == null || timestamp.isEmpty()) return "";
+    public static ZonedDateTime localDateTime(String timestamp) {
+        if (timestamp == null || timestamp.isEmpty()) return null;
         try {
-            // PostgreSQL timestamptz::text commonly uses a space and +00 or +0200.
             String normalized = timestamp.replace('T', ' ');
             normalized = normalized.replaceFirst("([+-]\\\\d{2})$", "$1:00");
             normalized = normalized.replaceFirst("([+-]\\\\d{2})(\\\\d{2})$", "$1:$2");
             return OffsetDateTime.parse(normalized, SERVER_TIME)
-                .atZoneSameInstant(ZoneId.systemDefault()).format(LOCAL_TIME);
+                .atZoneSameInstant(ZoneId.systemDefault());
         } catch (RuntimeException ignored) {
-            // Unknown server format: do not mislabel a timestamp as local time.
-            return "";
+            return null;
         }
+    }
+
+    public static String localDateKey(String timestamp) {
+        ZonedDateTime date = localDateTime(timestamp);
+        return date == null ? "" : date.toLocalDate().toString();
+    }
+
+    public static String dateLabel(String timestamp) {
+        ZonedDateTime date = localDateTime(timestamp);
+        if (date == null) return "";
+        LocalDate day = date.toLocalDate();
+        LocalDate today = LocalDate.now(ZoneId.systemDefault());
+        if (day.equals(today)) return "Aujourd'hui";
+        if (day.equals(today.minusDays(1))) return "Hier";
+        return day.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG)
+            .withLocale(Locale.getDefault()));
+    }
+
+    public static void addDateSeparator(LinearLayout history, String label) {
+        if (label == null || label.isEmpty()) return;
+        Context context = history.getContext();
+        TextView separator = new TextView(context);
+        separator.setText(label);
+        separator.setTextSize(13f);
+        separator.setTextColor(Color.rgb(98, 112, 131));
+        separator.setGravity(Gravity.CENTER);
+        separator.setPadding(dp(context, 8), dp(context, 16), dp(context, 8), dp(context, 12));
+        history.addView(separator, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+    }
+
+    public static String localTime(String timestamp) {
+        ZonedDateTime date = localDateTime(timestamp);
+        return date == null ? "" : date.format(LOCAL_TIME);
     }
 
     private static int dp(Context context, int value) {
