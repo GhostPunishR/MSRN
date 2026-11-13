@@ -77,6 +77,17 @@ public final class AuthApi {
         return request("POST", "/conversations/" + conversationId + "/messages", body, token);
     }
 
+    public static JSONObject myProfile(String token) throws Exception {
+        return request("GET", "/profile/me", null, token);
+    }
+
+    public static JSONObject updateProfile(String token, String displayName, int avatarId) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("display_name", displayName);
+        body.put("avatar_id", avatarId);
+        return request("PUT", "/profile/me", body, token);
+    }
+
     public static JSONObject myPresence(String token) throws Exception {
         return request("GET", "/presence/me", null, token);
     }
