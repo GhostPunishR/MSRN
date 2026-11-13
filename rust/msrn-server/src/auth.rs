@@ -174,7 +174,7 @@ pub async fn login(
     create_session(&pool, PublicUser { id, username, display_name }).await
 }
 
-async fn current_user(pool: &PgPool, headers: &HeaderMap) -> Result<(Uuid, PublicUser), StatusCode> {
+pub(crate) async fn current_user(pool: &PgPool, headers: &HeaderMap) -> Result<(Uuid, PublicUser), StatusCode> {
     let value = headers
         .get(AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
