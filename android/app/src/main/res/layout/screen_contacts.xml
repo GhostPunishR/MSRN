@@ -3,15 +3,31 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
-    android:padding="20dp" android:orientation="vertical">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Mes contacts" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
-    <Button android:id="@+id/refresh_contacts" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="Actualiser" android:textAllCaps="false" />
-    <TextView android:id="@+id/contacts_status" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="Connectez-vous pour voir vos contacts."
-        android:textColor="#65758B" />
-    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+    android:paddingHorizontal="16dp" android:orientation="vertical"
+    android:focusable="true" android:focusableInTouchMode="true">
+    <LinearLayout android:id="@+id/contact_scene" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:padding="20dp" android:orientation="vertical" android:background="@drawable/msrn_scene">
+        <TextView style="@style/MSRN.Caption" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/contacts_title" />
+        <TextView style="@style/MSRN.Title" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="6dp" android:text="@string/contacts_hero" />
+        <TextView style="@style/MSRN.Caption" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/contacts_intro" />
+    </LinearLayout>
+    <EditText android:id="@+id/contact_search" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="16dp"
+        android:hint="@string/contacts_search_hint" android:singleLine="true" android:inputType="text"
+        android:maxLength="160" android:imeOptions="actionDone" />
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:gravity="center_vertical" android:orientation="horizontal">
+        <TextView android:id="@+id/contacts_status" style="@style/MSRN.Caption"
+            android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:paddingEnd="8dp" android:text="Connectez-vous pour retrouver vos proches." />
+        <Button android:id="@+id/refresh_contacts" style="@style/MSRN.Button.Secondary"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/contacts_refresh" />
+    </LinearLayout>
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:clipToPadding="false" android:paddingBottom="12dp">
         <LinearLayout android:id="@+id/contacts_list" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:orientation="vertical" />
     </ScrollView>

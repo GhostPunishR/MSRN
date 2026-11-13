@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false" android:color="@color/msrn_muted" />
+    <item android:color="@color/msrn_on_primary" />
+</selector>

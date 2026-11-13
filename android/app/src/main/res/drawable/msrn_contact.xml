@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<ripple xmlns:android="http://schemas.android.com/apk/res/android" android:color="@color/msrn_ripple">
+    <item android:drawable="@drawable/msrn_card" />
+</ripple>

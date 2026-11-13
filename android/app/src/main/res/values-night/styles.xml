@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<resources>
+    <style name="Theme.MSRN" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:colorAccent">@color/msrn_primary</item>
+        <item name="android:colorControlNormal">@color/msrn_muted</item>
+        <item name="android:textColorPrimary">@color/msrn_ink</item>
+        <item name="android:textColorSecondary">@color/msrn_muted</item>
+        <item name="android:colorBackground">@color/msrn_background</item>
+        <item name="android:windowBackground">@color/msrn_background</item>
+        <item name="android:statusBarColor">@color/msrn_background</item>
+        <item name="android:navigationBarColor">@color/msrn_surface</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:buttonStyle">@style/MSRN.Button</item>
+        <item name="android:editTextStyle">@style/MSRN.Input</item>
+    </style>
+</resources>

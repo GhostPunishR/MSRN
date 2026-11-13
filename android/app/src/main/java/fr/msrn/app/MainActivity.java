@@ -10,6 +10,8 @@ import fr.msrn.app.chat.EmojiSupport;
 import fr.msrn.app.chat.MessageBubbles;
 import fr.msrn.app.chat.MessageSoundQueue;
 import fr.msrn.app.chat.ChatSounds;
+import fr.msrn.app.ui.ContactPresentation;
+import fr.msrn.app.ui.ContactViews;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import android.os.Bundle;
@@ -49,6 +51,7 @@ public final class MainActivity extends Activity {
     private final ConversationEvents events = new ConversationEvents();
     private final MessageSoundQueue messageSounds = new MessageSoundQueue();
     private ChatSounds chatSounds;
+    private JSONArray contactResults = new JSONArray();
     private String activeConversationId;
     private String activeContactName;
     private String activeContactProfile = "";
@@ -84,7 +87,10 @@ public final class MainActivity extends Activity {
         FrameLayout container = findViewById(R.id.screen_container);
         if (container != null) {
             TextView label = container.findViewById(R.id.chat_typing);
-            if (label != null) label.setText("");
+            if (label != null) {
+                label.setText("");
+                label.setVisibility(View.GONE);
+            }
         }
     };
     private final Runnable presencePulse = new Runnable() {
@@ -115,6 +121,7 @@ public final class MainActivity extends Activity {
     private void showScreen(int layoutId) {
         events.close();
         messageSounds.clear();
+        contactResults = new JSONArray();
         contactsHandler.removeCallbacks(contactsRefresh);
         typingHandler.removeCallbacks(stopTyping);
         typingHandler.removeCallbacks(hideTyping);
@@ -123,8 +130,23 @@ public final class MainActivity extends Activity {
         container.removeAllViews();
         View screen = LayoutInflater.from(this).inflate(layoutId, container, false);
         container.addView(screen);
+        findViewById(R.id.app_brand).setVisibility(layoutId == R.layout.screen_chat ? View.GONE : View.VISIBLE);
+        findViewById(R.id.tab_contacts).setSelected(layoutId == R.layout.screen_contacts);
+        findViewById(R.id.tab_chat).setSelected(layoutId == R.layout.screen_chat);
+        findViewById(R.id.tab_friends).setSelected(layoutId == R.layout.screen_friends);
+        findViewById(R.id.tab_profile).setSelected(layoutId == R.layout.screen_profile || layoutId == R.layout.screen_auth);
 
         if (layoutId == R.layout.screen_contacts) {
+            EditText search = screen.findViewById(R.id.contact_search);
+            search.setOnFocusChangeListener((view, focused) ->
+                screen.findViewById(R.id.contact_scene).setVisibility(focused ? View.GONE : View.VISIBLE));
+            search.addTextChangedListener(new TextWatcher() {
+                @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+                @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    if (screen.getParent() != null) renderContacts(screen);
+                }
+                @Override public void afterTextChanged(Editable s) { }
+            });
             screen.findViewById(R.id.refresh_contacts).setOnClickListener(v -> loadContacts(screen));
             loadContacts(screen);
             if (foreground && sessionToken != null) {
@@ -358,9 +380,10 @@ public final class MainActivity extends Activity {
             emojiButton.setText(emoji);
             emojiButton.setTextSize(20f);
             emojiButton.setAllCaps(false);
-            emojiButton.setMinWidth(0);
-            emojiButton.setMinimumWidth(0);
-            emojiButton.setPadding(10, 0, 10, 0);
+            emojiButton.setMinWidth(dp(48));
+            emojiButton.setMinimumWidth(dp(48));
+            emojiButton.setPadding(dp(10), 0, dp(10), 0);
+            emojiButton.setContentDescription("Insérer " + emoji);
             emojiButton.setOnClickListener(v -> {
                 int start = Math.max(0, input.getSelectionStart());
                 int end = Math.max(0, input.getSelectionEnd());
@@ -517,6 +540,7 @@ public final class MainActivity extends Activity {
                     || !conversationId.equals(activeConversationId)) return;
                 TextView label = screen.findViewById(R.id.chat_typing);
                 label.setText(typing ? "Votre contact écrit un message..." : "");
+                label.setVisibility(typing ? View.VISIBLE : View.GONE);
                 typingHandler.removeCallbacks(hideTyping);
                 if (typing) typingHandler.postDelayed(hideTyping, 4000);
             }
@@ -542,7 +566,8 @@ public final class MainActivity extends Activity {
     private void renderCachedMessages(View screen, boolean preservePosition) {
         LinearLayout history = screen.findViewById(R.id.chat_history);
         ScrollView scroll = screen.findViewById(R.id.chat_scroll);
-        int oldHeight = history.getHeight();
+        View content = scroll.getChildAt(0);
+        int oldHeight = content.getHeight();
         int oldScrollY = scroll.getScrollY();
         boolean wasAtBottom = !preservePosition && oldScrollY + scroll.getHeight()
             >= oldHeight - 64;
@@ -565,7 +590,7 @@ public final class MainActivity extends Activity {
         if (preservePosition) {
             scroll.post(() -> {
                 if (screen.getParent() != null) {
-                    scroll.scrollTo(0, Math.max(0, oldScrollY + history.getHeight() - oldHeight));
+                    scroll.scrollTo(0, Math.max(0, oldScrollY + content.getHeight() - oldHeight));
                 }
             });
         } else if (wasAtBottom) {
@@ -685,12 +710,7 @@ public final class MainActivity extends Activity {
     }
 
     private String presenceLabel(String presence) {
-        switch (presence) {
-            case "online": return "En ligne";
-            case "away": return "Absent";
-            case "busy": return "Occupé";
-            default: return "Hors ligne";
-        }
+        return ContactPresentation.presenceLabel(presence);
     }
 
     private void loadContacts(View screen) {
@@ -716,38 +736,8 @@ public final class MainActivity extends Activity {
                     contactsLoading = false;
                     if (sessionToken == null || !sessionToken.equals(token)) return;
                     if (screen.getParent() == null) return;
-                    status.setText(contacts.length() == 0 ? "Aucun contact pour le moment." : contacts.length() + " contact(s)");
-                    list.removeAllViews();
-                    for (int i = 0; i < contacts.length(); i++) {
-                        JSONObject user = contacts.optJSONObject(i);
-                        if (user == null) continue;
-                        TextView item = new TextView(this);
-                        item.setText(avatarLabel(user.optInt("avatar_id", 1)) + " "
-                            + user.optString("display_name") + " (@" + user.optString("username") + ") : "
-                            + presenceLabel(user.optString("presence", "offline"))
-                            + (user.optString("personal_message").isEmpty() ? "" :
-                                "\\n" + user.optString("personal_message")));
-                        int unread = user.optInt("unread_count", 0);
-                        if (unread > 0) {
-                            item.append("  ● " + (unread > 99 ? "99+" : String.valueOf(unread)) + " non lu(s)");
-                            item.setTypeface(null, android.graphics.Typeface.BOLD);
-                        }
-                        item.setTextSize(18f);
-                        item.setPadding(0, 16, 0, 16);
-                        String username = user.optString("username");
-                        item.setOnClickListener(v -> {
-                            openConversation(username);
-                            activeContactProfile = avatarLabel(user.optInt("avatar_id", 1)) + " "
-                                + user.optString("display_name") + " - "
-                                + presenceLabel(user.optString("presence", "offline"))
-                                + (user.optString("personal_message").isEmpty() ? "" :
-                                    "\\n" + user.optString("personal_message"));
-                            FrameLayout chatContainer = findViewById(R.id.screen_container);
-                            TextView profile = chatContainer.findViewById(R.id.chat_contact_profile);
-                            if (profile != null) profile.setText(activeContactProfile);
-                        });
-                        list.addView(item);
-                    }
+                    contactResults = contacts;
+                    renderContacts(screen);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -756,6 +746,58 @@ public final class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    private void renderContacts(View screen) {
+        if (sessionToken == null || (contactsLoading && contactResults.length() == 0)) return;
+        EditText search = screen.findViewById(R.id.contact_search);
+        LinearLayout list = screen.findViewById(R.id.contacts_list);
+        TextView status = screen.findViewById(R.id.contacts_status);
+        String query = search.getText().toString();
+        list.removeAllViews();
+        int shown = 0;
+        for (boolean connected : new boolean[]{true, false}) {
+            int count = 0;
+            for (int i = 0; i < contactResults.length(); i++) {
+                JSONObject user = contactResults.optJSONObject(i);
+                if (user != null && ContactPresentation.connected(user.optString("presence")) == connected
+                    && ContactPresentation.matches(query, user.optString("display_name"), user.optString("username"), user.optString("personal_message"))) count++;
+            }
+            if (count == 0) continue;
+            TextView heading = new TextView(this, null, 0, R.style.MSRN_Caption);
+            heading.setText(getString(connected ? R.string.contacts_online : R.string.contacts_offline) + " · " + count);
+            heading.setPadding(0, dp(12), 0, dp(8));
+            list.addView(heading);
+            for (int i = 0; i < contactResults.length(); i++) {
+                JSONObject user = contactResults.optJSONObject(i);
+                if (user == null || ContactPresentation.connected(user.optString("presence")) != connected
+                    || !ContactPresentation.matches(query, user.optString("display_name"), user.optString("username"), user.optString("personal_message"))) continue;
+                String username = user.optString("username");
+                list.addView(ContactViews.row(this, user, avatarLabel(user.optInt("avatar_id", 1)), v -> {
+                    openConversation(username);
+                    activeContactProfile = avatarLabel(user.optInt("avatar_id", 1)) + " "
+                        + user.optString("display_name") + " · " + presenceLabel(user.optString("presence", "offline"))
+                        + (user.optString("personal_message").isEmpty() ? "" : "\n" + user.optString("personal_message"));
+                    FrameLayout chatContainer = findViewById(R.id.screen_container);
+                    TextView profile = chatContainer.findViewById(R.id.chat_contact_profile);
+                    if (profile != null) profile.setText(activeContactProfile);
+                }));
+            }
+            shown += count;
+        }
+        status.setText(contactResults.length() == 0 ? "Aucun contact pour le moment."
+            : shown + " sur " + contactResults.length() + " contact(s)");
+        if (shown == 0) {
+            TextView empty = new TextView(this, null, 0, R.style.MSRN_Caption);
+            empty.setPadding(dp(8), dp(20), dp(8), dp(20));
+            empty.setText(contactResults.length() == 0 ? "Invitez votre premier contact depuis Amis."
+                : getString(R.string.contacts_no_results));
+            list.addView(empty);
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private void loadRequests(View screen) {
@@ -782,18 +824,28 @@ public final class MainActivity extends Activity {
                         String id = request.optString("id");
                         JSONObject sender = request.optJSONObject("sender");
                         if (sender == null) continue;
-                        TextView name = new TextView(this);
+                        LinearLayout invitation = new LinearLayout(this);
+                        invitation.setOrientation(LinearLayout.VERTICAL);
+                        invitation.setPadding(dp(16), dp(16), dp(16), dp(16));
+                        invitation.setBackgroundResource(R.drawable.msrn_card);
+                        LinearLayout.LayoutParams invitationParams = new LinearLayout.LayoutParams(-1, -2);
+                        invitationParams.bottomMargin = dp(12);
+                        TextView name = new TextView(this, null, 0, R.style.MSRN_Section);
                         name.setText(sender.optString("display_name") + " (@" + sender.optString("username") + ")");
-                        name.setTextSize(18f);
-                        list.addView(name);
+                        invitation.addView(name);
+                        LinearLayout actions = new LinearLayout(this);
                         Button accept = new Button(this);
                         accept.setText("Accepter");
                         accept.setOnClickListener(v -> respondToInvitation(screen, id, true));
-                        list.addView(accept);
-                        Button decline = new Button(this);
+                        LinearLayout.LayoutParams acceptParams = new LinearLayout.LayoutParams(0, -2, 1);
+                        acceptParams.setMarginEnd(dp(8));
+                        actions.addView(accept, acceptParams);
+                        Button decline = new Button(this, null, 0, R.style.MSRN_Button_Secondary);
                         decline.setText("Refuser");
                         decline.setOnClickListener(v -> respondToInvitation(screen, id, false));
-                        list.addView(decline);
+                        actions.addView(decline, new LinearLayout.LayoutParams(0, -2, 1));
+                        invitation.addView(actions);
+                        list.addView(invitation, invitationParams);
                     }
                 });
             } catch (Exception e) {
@@ -860,7 +912,7 @@ public final class MainActivity extends Activity {
         Button login = screen.findViewById(R.id.auth_login);
         Button register = screen.findViewById(R.id.auth_register);
         Button logout = screen.findViewById(R.id.auth_logout);
-        identity.setText(sessionToken == null ? "Non connecté" : "Session active (en mémoire)");
+        identity.setText(sessionToken == null ? "Non connecté" : "Session active");
         logout.setEnabled(sessionToken != null);
 
         login.setOnClickListener(v -> authenticate(screen, false));

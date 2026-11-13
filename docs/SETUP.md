@@ -297,3 +297,19 @@ Device verification remains outstanding because no Android emulator/device was a
 4. Restart the app and confirm both switches retain their values. Sign in again to resume messaging, since authentication sessions still live only in process memory.
 5. Repeat with notification volume zero, silent mode, vibrate mode, and each Do Not Disturb mode. Confirm no sound, then restore normal audio and confirm receipt sounds resume.
 6. Put the receiving app in the background during an incoming event. Confirm playback stops, no background sound occurs, and returning to the chat resynchronizes without replaying alerts. Check that the profile settings remain accessible by scrolling on a small display.
+
+## Modern MSN-inspired Android interface
+
+The interface study and its sources are in [MSN_INTERFACE_STUDY.md](design/MSN_INTERFACE_STUDY.md). The selected direction combines MSN 7.5's personal identity and expression with Windows Live Messenger 2009's lighter scenes and structured contacts, adapted to Android. Five existing screens are restyled: contacts, chat, invitations, profile, and account. The app has shared light/dark color roles, explicit selected navigation, avatar/presence contact cards, unread badges, and local accent-insensitive contact search. Search covers only the contacts already loaded from the API.
+
+The interactive [design proposal](design/msrn-modern-preview.html) and its PNG overviews use fictional data. They are browser mockups, not Android screenshots. No Microsoft images, logos, or sounds are shipped in the app.
+
+Verification after modernization:
+
+- `gradle -p android --no-daemon --max-workers=2 :app:assembleDebug :app:testDebugUnitTest`: debug APK generated, 18 tests passed, including 6 new contact search/presence/unread tests.
+- Existing XML callback contracts: all 50 previous widget IDs keep their types.
+- Configured text color/background pairs: minimum contrast 4.98:1 in light mode and 6.33:1 in dark mode, across the checked surface/scene/action roles. This does not measure every system widget at runtime.
+- Chromium proposal: no horizontal overflow at 320, 390, 768, and 1280 px in either theme; search, contact selection, local message display, emoji, Wizz feedback, switches, invitations, and account demonstration checked without JavaScript errors.
+- Independent native review found no blocking defects. No backend or migration changes were needed.
+
+Native visual validation remains outstanding. On Android, check all five screens in both themes, at 320 dp and a larger display, portrait and landscape, font sizes up to 200%, keyboard open, and TalkBack enabled. Confirm send/refresh/Wizz/emoji controls remain reachable, older history retains scroll position, full contact descriptions and actual unread counts are announced, and forms scroll to their last controls. Browser checks do not substitute for these device checks or the two-client messaging/audio checks above.

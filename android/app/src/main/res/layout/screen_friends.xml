@@ -1,23 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Copyright (C) 2026 GhostPunishR and contributors -->
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent" android:layout_height="match_parent"
-    android:padding="20dp" android:orientation="vertical">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-        android:text="Mes invitations" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
-    <EditText android:id="@+id/friend_username" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:hint="Identifiant du contact"
-        android:inputType="textNoSuggestions" android:maxLength="40" android:singleLine="true" />
-    <Button android:id="@+id/send_friend_request" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="Envoyer une invitation" android:textAllCaps="false" />
-    <Button android:id="@+id/refresh_requests" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="Actualiser les invitations" android:textAllCaps="false" />
-    <TextView android:id="@+id/friend_request_status" android:layout_width="match_parent"
-        android:layout_height="wrap_content" android:text="Connectez-vous pour gérer vos invitations."
-        android:textColor="#65758B" />
-    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-        <LinearLayout android:id="@+id/requests_list" android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:orientation="vertical" />
-    </ScrollView>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true">
+<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:paddingHorizontal="16dp" android:paddingBottom="16dp" android:orientation="vertical">
+    <TextView style="@style/MSRN.Title" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="@string/friends_title" />
+    <TextView style="@style/MSRN.Caption" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="6dp" android:layout_marginBottom="16dp"
+        android:text="@string/friends_intro" />
+    <LinearLayout style="@style/MSRN.Card">
+        <TextView style="@style/MSRN.Section" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Ajouter un contact" android:labelFor="@id/friend_username" />
+        <EditText android:id="@+id/friend_username" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="@string/friends_username"
+            android:inputType="textNoSuggestions" android:maxLength="40" android:singleLine="true" />
+        <Button android:id="@+id/send_friend_request" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="@string/friends_send" />
+    </LinearLayout>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView style="@style/MSRN.Section" android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="@string/friends_received" />
+        <Button android:id="@+id/refresh_requests" style="@style/MSRN.Button.Secondary"
+            android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/contacts_refresh" />
+    </LinearLayout>
+    <TextView android:id="@+id/friend_request_status" style="@style/MSRN.Caption" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginBottom="8dp" android:text="Vos invitations apparaîtront ici." />
+    <LinearLayout android:id="@+id/requests_list" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:orientation="vertical" />
 </LinearLayout>
+</ScrollView>

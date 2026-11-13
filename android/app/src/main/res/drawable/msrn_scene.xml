@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient android:angle="315" android:startColor="@color/msrn_scene_start" android:endColor="@color/msrn_scene_end" />
+    <corners android:radius="24dp" />
+</shape>

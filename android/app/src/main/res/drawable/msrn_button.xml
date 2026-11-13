@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_enabled="false"><shape><solid android:color="@color/msrn_surface_soft" /><corners android:radius="14dp" /></shape></item>
+    <item><ripple android:color="@color/msrn_ripple"><item><shape><solid android:color="@color/msrn_primary" /><corners android:radius="14dp" /></shape></item></ripple></item>
+</selector>

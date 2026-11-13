@@ -3,12 +3,81 @@
 <!-- SPDX-License-Identifier: AGPL-3.0-only -->
 <resources>
     <style name="Theme.MSRN" parent="android:style/Theme.Material.Light.NoActionBar">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:colorAccent">#2667D9</item>
-        <item name="android:statusBarColor">#F6F8FC</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:colorAccent">@color/msrn_primary</item>
+        <item name="android:colorControlNormal">@color/msrn_muted</item>
+        <item name="android:textColorPrimary">@color/msrn_ink</item>
+        <item name="android:textColorSecondary">@color/msrn_muted</item>
+        <item name="android:colorBackground">@color/msrn_background</item>
+        <item name="android:windowBackground">@color/msrn_background</item>
+        <item name="android:statusBarColor">@color/msrn_background</item>
+        <item name="android:navigationBarColor">@color/msrn_surface</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">#FFFFFF</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <item name="android:windowBackground">#F6F8FC</item>
+        <item name="android:buttonStyle">@style/MSRN.Button</item>
+        <item name="android:editTextStyle">@style/MSRN.Input</item>
+    </style>
+    <style name="MSRN.Title" parent="android:style/Widget.TextView">
+        <item name="android:textSize">26sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/msrn_ink</item>
+    </style>
+    <style name="MSRN.Section" parent="android:style/Widget.TextView">
+        <item name="android:textSize">16sp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textColor">@color/msrn_ink</item>
+        <item name="android:layout_marginBottom">8dp</item>
+    </style>
+    <style name="MSRN.Caption" parent="android:style/Widget.TextView">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/msrn_muted</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+    </style>
+    <style name="MSRN.Card" parent="">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginBottom">16dp</item>
+        <item name="android:padding">16dp</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:background">@drawable/msrn_card</item>
+    </style>
+    <style name="MSRN.Button" parent="android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/msrn_button</item>
+        <item name="android:backgroundTint">@null</item>
+        <item name="android:textColor">@color/msrn_button_text</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:paddingLeft">16dp</item>
+        <item name="android:paddingRight">16dp</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:layout_marginBottom">4dp</item>
+    </style>
+    <style name="MSRN.Button.Secondary" parent="MSRN.Button">
+        <item name="android:background">@drawable/msrn_secondary</item>
+        <item name="android:textColor">@color/msrn_secondary_text</item>
+    </style>
+    <style name="MSRN.Nav" parent="MSRN.Button.Secondary">
+        <item name="android:background">@drawable/msrn_navigation</item>
+        <item name="android:textColor">@color/msrn_nav_text</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:paddingLeft">4dp</item>
+        <item name="android:paddingRight">4dp</item>
+        <item name="android:layout_marginTop">0dp</item>
+        <item name="android:layout_marginBottom">0dp</item>
+    </style>
+    <style name="MSRN.Input" parent="android:style/Widget.Material.EditText">
+        <item name="android:background">@drawable/msrn_input</item>
+        <item name="android:backgroundTint">@null</item>
+        <item name="android:textColor">@color/msrn_ink</item>
+        <item name="android:textColorHint">@color/msrn_muted</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:padding">14dp</item>
+        <item name="android:layout_marginBottom">8dp</item>
     </style>
 </resources>

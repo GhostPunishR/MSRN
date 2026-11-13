@@ -22,4 +22,10 @@ Authenticated conversation-scoped WebSocket notifications are wired to Android w
 
 Android Profile now offers separate, persistent switches for incoming message and Wizz sounds. Both are off by default. Native Android tones play only in the visible conversation while the app is in the foreground, with notification volume enabled and silent/vibrate/Do Not Disturb modes off. Message senders are confirmed through HTTP history; own messages, duplicate events, history loads, and reconnect resynchronization stay silent. Sounds share a 1.5-second cooldown to limit bursts.
 
-The debug APK builds and all 12 Android JVM tests pass, including 7 live-message alert regression tests. Audible playback, interactive preference persistence, and device audio/lifecycle behavior still need the manual checks in `docs/SETUP.md`.
+The initial sound milestone built the debug APK and passed 12 Android JVM tests, including 7 live-message alert regression tests. Audible playback, interactive preference persistence, and device audio/lifecycle behavior still need the manual checks in `docs/SETUP.md`.
+
+## Modern interface direction
+
+The [historical interface study](design/MSN_INTERFACE_STUDY.md) compares major Messenger generations and screen families. GhostPunishR selected a modern interpretation of MSN 7.5 and Windows Live Messenger 2009. The five current Android screens now use a shared light/dark palette, native controls, avatar/presence cards, local contact search, selected bottom navigation, and restyled conversation bubbles. The [interactive browser proposal](design/msrn-modern-preview.html) uses fictional data and is separate from native Android validation.
+
+The current debug APK builds and all 18 Android JVM tests pass. The 50 previous widget ID/type contracts are preserved. Native device checks for layout, large fonts, keyboard, orientation, TalkBack and audio remain. Calls, attachments, group chat, arbitrary avatar uploads, favorites and custom scenes require their own feature work before they can appear as working controls.

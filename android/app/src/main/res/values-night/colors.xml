@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<resources>
+    <color name="msrn_background">#101A2A</color>
+    <color name="msrn_surface">#19283D</color>
+    <color name="msrn_surface_soft">#233851</color>
+    <color name="msrn_ink">#EAF2FF</color>
+    <color name="msrn_muted">#B4C5DA</color>
+    <color name="msrn_primary">#A6C4FF</color>
+    <color name="msrn_on_primary">#10213E</color>
+    <color name="msrn_border">#34475F</color>
+    <color name="msrn_scene_start">#1B3454</color>
+    <color name="msrn_scene_end">#263C5D</color>
+    <color name="msrn_online">#7CDEAB</color>
+    <color name="msrn_away">#F0C26B</color>
+    <color name="msrn_busy">#FF9AA8</color>
+    <color name="msrn_offline">#B4C5DA</color>
+    <color name="msrn_ripple">#33A6C4FF</color>
+</resources>

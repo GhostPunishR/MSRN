@@ -4,7 +4,6 @@
 package fr.msrn.app.chat;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.widget.LinearLayout;
@@ -19,6 +18,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.Locale;
+import fr.msrn.app.R;
 
 /** Creates safe text-only message bubbles without modifying stored messages. */
 public final class MessageBubbles {
@@ -67,7 +67,7 @@ public final class MessageBubbles {
         TextView separator = new TextView(context);
         separator.setText(label);
         separator.setTextSize(13f);
-        separator.setTextColor(Color.rgb(98, 112, 131));
+        separator.setTextColor(context.getColor(R.color.msrn_muted));
         separator.setGravity(Gravity.CENTER);
         separator.setPadding(dp(context, 8), dp(context, 16), dp(context, 8), dp(context, 12));
         history.addView(separator, new LinearLayout.LayoutParams(
@@ -95,12 +95,16 @@ public final class MessageBubbles {
         TextView bubble = new TextView(context);
         bubble.setText(EmojiSupport.display(message.optString("body")));
         bubble.setTextSize(16f);
-        bubble.setTextColor(Color.rgb(25, 40, 61));
+        bubble.setTextColor(context.getColor(mine ? R.color.msrn_on_primary : R.color.msrn_ink));
         bubble.setPadding(dp(context, 12), dp(context, 9), dp(context, 12), dp(context, 9));
         bubble.setMaxWidth((int) (context.getResources().getDisplayMetrics().widthPixels * 0.78f));
         GradientDrawable background = new GradientDrawable();
-        background.setColor(mine ? Color.rgb(213, 237, 255) : Color.rgb(237, 240, 246));
-        background.setCornerRadius(dp(context, 15));
+        background.setColor(context.getColor(mine ? R.color.msrn_primary : R.color.msrn_surface));
+        if (!mine) background.setStroke(dp(context, 1), context.getColor(R.color.msrn_border));
+        float corner = dp(context, 18);
+        float small = dp(context, 6);
+        background.setCornerRadii(new float[]{corner, corner, corner, corner,
+            mine ? small : corner, mine ? small : corner, mine ? corner : small, mine ? corner : small});
         bubble.setBackground(background);
         row.addView(bubble, new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -109,7 +113,7 @@ public final class MessageBubbles {
         String timestamp = message.optString("created_at");
         String time = localTime(timestamp);
         detail.setText((mine ? "Vous" : "Contact") + (time.isEmpty() ? "" : " · " + time));
-        detail.setTextColor(Color.rgb(98, 112, 131));
+        detail.setTextColor(context.getColor(R.color.msrn_muted));
         detail.setTextSize(12f);
         detail.setPadding(dp(context, 5), dp(context, 3), dp(context, 5), 0);
         row.addView(detail);
