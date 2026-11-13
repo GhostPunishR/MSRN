@@ -40,6 +40,7 @@ public final class MainActivity extends Activity {
     private final ConversationEvents events = new ConversationEvents();
     private String activeConversationId;
     private String activeContactName;
+    private String activeContactProfile = "";
     private String sessionToken;
     private String nickname = "Moi";
     private int historyRequestVersion;
@@ -95,6 +96,38 @@ public final class MainActivity extends Activity {
             Spinner avatar = screen.findViewById(R.id.avatar_spinner);
             TextView profileStatus = screen.findViewById(R.id.profile_status);
             Button saveProfile = screen.findViewById(R.id.save_profile);
+            EditText personalInput = screen.findViewById(R.id.personal_message_input);
+            Button savePersonal = screen.findViewById(R.id.save_personal_message);
+            TextView personalStatus = screen.findViewById(R.id.personal_message_status);
+            savePersonal.setEnabled(sessionToken != null);
+            savePersonal.setOnClickListener(v -> {
+                if (sessionToken == null) return;
+                String message = personalInput.getText().toString().trim();
+                if (message.codePointCount(0, message.length()) > 160 ||
+                    message.chars().anyMatch(Character::isISOControl)) {
+                    personalInput.setError("Message invalide");
+                    return;
+                }
+                String token = sessionToken;
+                savePersonal.setEnabled(false);
+                io.execute(() -> {
+                    try {
+                        AuthApi.setPersonalMessage(token, message);
+                        runOnUiThread(() -> {
+                            if (screen.getParent() == null || !token.equals(sessionToken)) return;
+                            personalStatus.setText("Message personnel synchronisé.");
+                            savePersonal.setEnabled(true);
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            if (screen.getParent() != null) {
+                                personalStatus.setText("Enregistrement impossible.");
+                                savePersonal.setEnabled(true);
+                            }
+                        });
+                    }
+                });
+            });
             String[] avatars = {"🙂 Classique", "😎 Cool", "🐱 Chat", "⭐ Étoile", "🎮 Gamer", "💜 Coeur"};
             avatar.setAdapter(new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_dropdown_item, avatars));
@@ -108,6 +141,7 @@ public final class MainActivity extends Activity {
                         runOnUiThread(() -> {
                             if (screen.getParent() == null || !token.equals(sessionToken)) return;
                             nickname = profile.optString("display_name", nickname);
+                            personalInput.setText(profile.optString("personal_message", ""));
                             name.setText(nickname);
                             avatar.setSelection(Math.max(0, Math.min(5, profile.optInt("avatar_id", 1) - 1)));
                             profileStatus.setText("Profil synchronisé.");
@@ -220,6 +254,7 @@ public final class MainActivity extends Activity {
         String token = sessionToken;
         activeConversationId = null;
         activeContactName = username;
+        activeContactProfile = "";
         cachedMessages.clear();
         olderCursor = null;
         loadingOlder = false;
@@ -250,6 +285,7 @@ public final class MainActivity extends Activity {
         TextView title = screen.findViewById(R.id.chat_title);
         TextView status = screen.findViewById(R.id.chat_status);
         title.setText(activeContactName == null ? "Choisissez un contact" : "@" + activeContactName);
+        ((TextView) screen.findViewById(R.id.chat_contact_profile)).setText(activeContactProfile);
         Button send = screen.findViewById(R.id.send_message);
         Button refresh = screen.findViewById(R.id.refresh_messages);
         Button older = screen.findViewById(R.id.load_older_messages);
@@ -469,12 +505,25 @@ public final class MainActivity extends Activity {
                         JSONObject user = contacts.optJSONObject(i);
                         if (user == null) continue;
                         TextView item = new TextView(this);
-                        item.setText(user.optString("display_name") + " (@" + user.optString("username") + ") : "
-                            + presenceLabel(user.optString("presence", "offline")));
+                        item.setText(avatarLabel(user.optInt("avatar_id", 1)) + " "
+                            + user.optString("display_name") + " (@" + user.optString("username") + ") : "
+                            + presenceLabel(user.optString("presence", "offline"))
+                            + (user.optString("personal_message").isEmpty() ? "" :
+                                "\\n" + user.optString("personal_message")));
                         item.setTextSize(18f);
                         item.setPadding(0, 16, 0, 16);
                         String username = user.optString("username");
-                        item.setOnClickListener(v -> openConversation(username));
+                        item.setOnClickListener(v -> {
+                            openConversation(username);
+                            activeContactProfile = avatarLabel(user.optInt("avatar_id", 1)) + " "
+                                + user.optString("display_name") + " - "
+                                + presenceLabel(user.optString("presence", "offline"))
+                                + (user.optString("personal_message").isEmpty() ? "" :
+                                    "\\n" + user.optString("personal_message"));
+                            FrameLayout chatContainer = findViewById(R.id.screen_container);
+                            TextView profile = chatContainer.findViewById(R.id.chat_contact_profile);
+                            if (profile != null) profile.setText(activeContactProfile);
+                        });
                         list.addView(item);
                     }
                 });
