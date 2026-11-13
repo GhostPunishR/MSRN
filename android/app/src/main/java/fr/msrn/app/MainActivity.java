@@ -55,6 +55,20 @@ public final class MainActivity extends Activity {
     private String olderCursor;
     private boolean loadingOlder;
     private final Handler presenceHandler = new Handler(Looper.getMainLooper());
+    private final Handler contactsHandler = new Handler(Looper.getMainLooper());
+    private static final long CONTACTS_REFRESH_MS = 15000L;
+    private boolean contactsLoading;
+    private final Runnable contactsRefresh = new Runnable() {
+        @Override public void run() {
+            if (!foreground || sessionToken == null) return;
+            FrameLayout container = findViewById(R.id.screen_container);
+            if (container == null) return;
+            View screen = container.getChildAt(0);
+            if (screen == null || screen.findViewById(R.id.contacts_list) == null) return;
+            loadContacts(screen, true);
+            contactsHandler.postDelayed(this, CONTACTS_REFRESH_MS);
+        }
+    };
     private boolean foreground;
     private long lastTypingSent;
     private long lastWizzSent;
@@ -94,6 +108,7 @@ public final class MainActivity extends Activity {
 
     private void showScreen(int layoutId) {
         events.close();
+        contactsHandler.removeCallbacks(contactsRefresh);
         typingHandler.removeCallbacks(stopTyping);
         typingHandler.removeCallbacks(hideTyping);
         historyRequestVersion++;
@@ -105,6 +120,9 @@ public final class MainActivity extends Activity {
         if (layoutId == R.layout.screen_contacts) {
             screen.findViewById(R.id.refresh_contacts).setOnClickListener(v -> loadContacts(screen));
             loadContacts(screen);
+            if (foreground && sessionToken != null) {
+                contactsHandler.postDelayed(contactsRefresh, CONTACTS_REFRESH_MS);
+            }
         } else if (layoutId == R.layout.screen_chat) {
             setupChat(screen);
         } else if (layoutId == R.layout.screen_friends) {
@@ -639,19 +657,26 @@ public final class MainActivity extends Activity {
     }
 
     private void loadContacts(View screen) {
+        loadContacts(screen, false);
+    }
+
+    private void loadContacts(View screen, boolean quiet) {
+        if (contactsLoading) return;
         TextView status = screen.findViewById(R.id.contacts_status);
         LinearLayout list = screen.findViewById(R.id.contacts_list);
-        list.removeAllViews();
+        if (!quiet) list.removeAllViews();
         if (sessionToken == null) {
             status.setText("Connectez-vous dans Profil, Mon compte MSRN.");
             return;
         }
         String token = sessionToken;
-        status.setText("Chargement des contacts...");
+        if (!quiet) status.setText("Chargement des contacts...");
+        contactsLoading = true;
         io.execute(() -> {
             try {
                 JSONArray contacts = AuthApi.contacts(token);
                 runOnUiThread(() -> {
+                    contactsLoading = false;
                     if (sessionToken == null || !sessionToken.equals(token)) return;
                     if (screen.getParent() == null) return;
                     status.setText(contacts.length() == 0 ? "Aucun contact pour le moment." : contacts.length() + " contact(s)");
@@ -689,7 +714,8 @@ public final class MainActivity extends Activity {
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    if (screen.getParent() != null) status.setText("Impossible de charger les contacts.");
+                    contactsLoading = false;
+                    if (!quiet && screen.getParent() != null) status.setText("Impossible de charger les contacts.");
                 });
             }
         });
@@ -925,6 +951,7 @@ public final class MainActivity extends Activity {
         typingHandler.removeCallbacks(stopTyping);
         typingHandler.removeCallbacks(hideTyping);
         foreground = false;
+        contactsHandler.removeCallbacks(contactsRefresh);
         presenceHandler.removeCallbacks(presencePulse);
         events.close();
         super.onStop();
@@ -936,7 +963,11 @@ public final class MainActivity extends Activity {
         foreground = true;
         presenceHandler.removeCallbacks(presencePulse);
         presenceHandler.post(presencePulse);
+        contactsHandler.removeCallbacks(contactsRefresh);
         FrameLayout container = findViewById(R.id.screen_container);
+        if (container != null && container.findViewById(R.id.contacts_list) != null && sessionToken != null) {
+            contactsHandler.postDelayed(contactsRefresh, CONTACTS_REFRESH_MS);
+        }
         if (container != null && container.findViewById(R.id.chat_history) != null
             && sessionToken != null && activeConversationId != null) {
             View screen = container.getChildAt(0);
