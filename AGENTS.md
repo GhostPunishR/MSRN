@@ -54,3 +54,7 @@
 ## Additional owner restrictions
 - Never create, edit, open, close, label, or otherwise manage GitHub Issues.
 - Do not use long dashes (em dash or en dash) in documentation, code comments, commit messages, or user-facing project text. Use commas, colons, parentheses, or simple hyphens instead.
+
+## Placeholder cleanup
+- Remove a directory's `.gitkeep` as soon as that directory contains a real tracked file.
+- Never keep a `.gitkeep` beside real source, migrations, or configuration.
