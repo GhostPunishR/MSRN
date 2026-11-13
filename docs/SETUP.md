@@ -75,3 +75,24 @@ No builds or tests should be run on GitHub-hosted runners.
 ## Scope
 
 This is a foundation milestone, not a production messenger. Authentication, real messaging, authorization, rate limiting, encryption design, and account deletion still need implementation before public release.
+
+## Authentication milestone
+
+Local-only API routes:
+
+- `POST /auth/register` with JSON `{"username":"ghost_123","display_name":"Ghost","password":"a-strong-password"}`.
+- `POST /auth/login` with JSON `{"username":"ghost_123","password":"a-strong-password"}`.
+- `GET /auth/me` with header `Authorization: Bearer <token>`.
+- `POST /auth/logout` with the same bearer header. This revokes the current session.
+
+Usernames must be 3 to 40 lowercase ASCII letters, digits, or underscores. Passwords must contain 12 to 128 UTF-8 bytes. Tokens are random, hashed in PostgreSQL, and expire after seven days.
+
+In Android open **Profil**, then **Mon compte MSRN** to register or sign in against the local Rust server. Sessions currently remain only in application memory and are lost when the app process ends. No production login, HTTPS transport, password recovery, email verification, rate limiting, or account deletion is implemented yet. Never expose this prototype directly to the internet.
+
+## Local API example
+
+```sh
+curl -i -X POST http://127.0.0.1:3000/auth/register \\
+  -H 'Content-Type: application/json' \\
+  -d '{"username":"ghost_123","display_name":"Ghost","password":"a-strong-password"}'
+```
