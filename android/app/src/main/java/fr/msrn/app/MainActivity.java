@@ -595,6 +595,8 @@ public final class MainActivity extends Activity {
                 String actualName = response.getJSONObject("user").getString("display_name");
                 sessionToken = token;
                 runOnUiThread(() -> {
+                    presenceHandler.removeCallbacks(presencePulse);
+                    if (foreground) presenceHandler.post(presencePulse);
                     identity.setText("Connecté : " + actualName);
                     password.setText("");
                     status.setText("Compte connecté au serveur local.");
