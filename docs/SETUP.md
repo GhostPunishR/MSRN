@@ -215,3 +215,9 @@ The existing keyset pagination and WebSocket-triggered history refresh still pop
 When an older message page is prepended, Android records the previous scroll position and history height, re-renders the cached bubbles, and offsets the scroll position by the resulting height difference. This keeps the reader near the same visible messages instead of jumping to the bottom. On ordinary message refreshes, the chat auto-scrolls only if the reader was already near the bottom.
 
 Message bubble timestamps are parsed as offset-aware PostgreSQL `timestamptz::text` values, including `+HH`, `+HHMM`, and `+HH:MM` offsets. Android converts the instant to the device's current timezone before formatting `HH:mm`. Unknown formats show no time instead of an incorrectly labeled local time. No database or HTTP API changes are required. Device testing is still pending.
+
+## Conversation date separators
+
+Android groups adjacent messages by their calendar day after converting server timestamps into the device's current timezone. Each new day gets a centered separator: `Aujourd'hui`, `Hier`, or a localized long date for earlier days. Unparseable timestamps do not produce a potentially misleading separator. Date separators are reconstructed when history refreshes or older messages are loaded, and the existing scroll retention logic remains in place.
+
+No server endpoint or database migration is required. Android compilation and visual verification are still pending.
