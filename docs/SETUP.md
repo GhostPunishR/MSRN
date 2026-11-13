@@ -203,3 +203,9 @@ Wizz events are ephemeral and are not stored or delivered to offline contacts. T
 The Android chat screen includes a collapsible horizontal palette of 20 Unicode emoji. Selecting an emoji inserts it at the current text cursor or replaces the selected range. The existing 4,000-character message limit remains enforced. Emoji are sent as normal UTF-8 message text through the existing authenticated HTTP message API, without new database columns or server endpoints.
 
 The chat history renders common legacy text shortcuts such as `:-)`, `:)`, `:D`, `;)`, `:(`, `:P`, `:'(`, and `<3` as Unicode emoji. This substitution is display-only: stored message bodies are not rewritten. This is a lightweight original emoji experience, not a licensed MSN asset pack. Compilation and device testing are still pending.
+
+## Chat bubbles and message timestamps
+
+Android renders message history in a vertical collection of text-only bubbles. The signed-in user ID from the authentication response is compared with each message's `sender_id`: own messages align right in blue, and incoming messages align left in grey. The existing display-only emoji conversion still applies. Each bubble shows a short sender label and the `HH:mm` substring from the server-provided `created_at` field. This is server timestamp display, not a conversion into the device's local timezone.
+
+The existing keyset pagination and WebSocket-triggered history refresh still populate the same cached message collection. The view scrolls to the bottom if it was already near the bottom. No server schema or API change is required. Build and emulator verification remain pending.
