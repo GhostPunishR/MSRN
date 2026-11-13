@@ -22,6 +22,7 @@ pub struct Contact {
     id: Uuid,
     username: String,
     display_name: String,
+    avatar_id: i16,
     #[serde(skip_serializing_if = "Option::is_none")]
     presence: Option<String>,
 }
@@ -37,8 +38,8 @@ pub async fn contacts(
     headers: HeaderMap,
 ) -> Result<Json<Vec<Contact>>, StatusCode> {
     let (_, current) = current_user(&pool, &headers).await?;
-    let rows: Vec<(Uuid, String, String, String, bool)> = sqlx::query_as(
-        "SELECT u.id, u.username, u.display_name, u.preferred_presence, \
+    let rows: Vec<(Uuid, String, String, i16, String, bool)> = sqlx::query_as(
+        "SELECT u.id, u.username, u.display_name, u.avatar_id, u.preferred_presence, \
          EXISTS (SELECT 1 FROM user_sessions s WHERE s.user_id = u.id \
          AND s.revoked_at IS NULL AND s.expires_at > NOW() \
          AND s.last_seen_at > NOW() - INTERVAL '90 seconds') AS active \
@@ -49,8 +50,8 @@ pub async fn contacts(
     .fetch_all(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(rows.into_iter().map(|(id, username, display_name, preferred, active)| Contact {
-        id, username, display_name,
+    Ok(Json(rows.into_iter().map(|(id, username, display_name, avatar_id, preferred, active)| Contact {
+        id, username, display_name, avatar_id,
         presence: Some(crate::presence::contact_presence(&preferred, active).to_owned()),
     }).collect()))
 }
@@ -60,8 +61,8 @@ pub async fn incoming(
     headers: HeaderMap,
 ) -> Result<Json<Vec<PendingRequest>>, StatusCode> {
     let (_, current) = current_user(&pool, &headers).await?;
-    let rows: Vec<(Uuid, Uuid, String, String)> = sqlx::query_as(
-        "SELECT r.id, u.id, u.username, u.display_name FROM friend_requests r \
+    let rows: Vec<(Uuid, Uuid, String, String, i16)> = sqlx::query_as(
+        "SELECT r.id, u.id, u.username, u.display_name, u.avatar_id FROM friend_requests r \
          JOIN users u ON u.id = r.sender_id WHERE r.recipient_id = $1 \
          ORDER BY r.created_at DESC LIMIT 100",
     )
@@ -69,9 +70,9 @@ pub async fn incoming(
     .fetch_all(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(rows.into_iter().map(|(id, user_id, username, display_name)| PendingRequest {
+    Ok(Json(rows.into_iter().map(|(id, user_id, username, display_name, avatar_id)| PendingRequest {
         id,
-        sender: Contact { id: user_id, username, display_name, presence: None },
+        sender: Contact { id: user_id, username, display_name, avatar_id, presence: None },
     }).collect()))
 }
 
