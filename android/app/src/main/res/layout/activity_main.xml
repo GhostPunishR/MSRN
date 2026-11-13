@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#F6F8FC">
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="20dp"
+        android:text="MSRN"
+        android:textColor="#164DA8"
+        android:textStyle="bold"
+        android:textSize="26sp" />
+    <FrameLayout
+        android:id="@+id/screen_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#FFFFFF">
+        <Button android:id="@+id/tab_contacts" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Contacts" android:textAllCaps="false" />
+        <Button android:id="@+id/tab_chat" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Chat" android:textAllCaps="false" />
+        <Button android:id="@+id/tab_friends" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Amis" android:textAllCaps="false" />
+        <Button android:id="@+id/tab_profile" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Profil" android:textAllCaps="false" />
+    </LinearLayout>
+</LinearLayout>
