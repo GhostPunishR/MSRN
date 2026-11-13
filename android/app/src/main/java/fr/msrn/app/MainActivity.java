@@ -551,6 +551,19 @@ public final class MainActivity extends Activity {
                         if (message != null) cachedMessages.put(message.optString("id"), message);
                     }
                     renderCachedMessages(screen);
+                    if (foreground && messages.length() > 0) {
+                        JSONObject newest = messages.optJSONObject(messages.length() - 1);
+                        if (newest != null) {
+                            String messageId = newest.optString("id");
+                            io.execute(() -> {
+                                try {
+                                    AuthApi.markRead(token, conversationId, messageId);
+                                } catch (Exception ignored) {
+                                    // Unread badge remains until a successful acknowledgement.
+                                }
+                            });
+                        }
+                    }
                     status.setText("Messages synchronisés. " + cachedMessages.size() + " affichés.");
                 });
             } catch (Exception e) {
@@ -652,6 +665,11 @@ public final class MainActivity extends Activity {
                             + presenceLabel(user.optString("presence", "offline"))
                             + (user.optString("personal_message").isEmpty() ? "" :
                                 "\\n" + user.optString("personal_message")));
+                        int unread = user.optInt("unread_count", 0);
+                        if (unread > 0) {
+                            item.append("  ● " + (unread > 99 ? "99+" : String.valueOf(unread)) + " non lu(s)");
+                            item.setTypeface(null, android.graphics.Typeface.BOLD);
+                        }
                         item.setTextSize(18f);
                         item.setPadding(0, 16, 0, 16);
                         String username = user.optString("username");
