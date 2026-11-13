@@ -221,3 +221,11 @@ Message bubble timestamps are parsed as offset-aware PostgreSQL `timestamptz::te
 Android groups adjacent messages by their calendar day after converting server timestamps into the device's current timezone. Each new day gets a centered separator: `Aujourd'hui`, `Hier`, or a localized long date for earlier days. Unparseable timestamps do not produce a potentially misleading separator. Date separators are reconstructed when history refreshes or older messages are loaded, and the existing scroll retention logic remains in place.
 
 No server endpoint or database migration is required. Android compilation and visual verification are still pending.
+
+## Unread message counts
+
+Migration `202611130008_unread_messages.sql` adds a per-member `last_read_at` timestamp, initially negative infinity. `GET /contacts` now returns an `unread_count` integer for each accepted friend. It counts only messages sent by that friend in the existing direct conversation after the authenticated member's last-read timestamp. Contacts without a direct conversation return zero.
+
+Authenticated `POST /conversations/{id}/read` accepts `{"message_id":"<uuid>"}` and returns HTTP 204. The server checks conversation membership and that the referenced message belongs to that conversation; it advances the read timestamp monotonically and never rewinds it. An invalid message ID for the conversation returns 404.
+
+Android displays nonzero unread counts in bold on the contacts list, capped visually at 99+. After successfully loading the latest history page in a foreground chat, it acknowledges the newest message in that page. The list refreshes on the next contacts load. Counts are not pushed live while the contacts screen remains open, and a read acknowledgement does not indicate the user actually scrolled to or read each message. Messages with identical database timestamps may share the same read boundary. The feature has not yet been compiled or integration-tested.
