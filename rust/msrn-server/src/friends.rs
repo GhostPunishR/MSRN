@@ -24,6 +24,7 @@ pub struct Contact {
     display_name: String,
     avatar_id: i16,
     personal_message: String,
+    unread_count: i64,
     #[serde(skip_serializing_if = "Option::is_none")]
     presence: Option<String>,
 }
@@ -39,11 +40,17 @@ pub async fn contacts(
     headers: HeaderMap,
 ) -> Result<Json<Vec<Contact>>, StatusCode> {
     let (_, current) = current_user(&pool, &headers).await?;
-    let rows: Vec<(Uuid, String, String, i16, String, String, bool)> = sqlx::query_as(
+    let rows: Vec<(Uuid, String, String, i16, String, String, bool, i64)> = sqlx::query_as(
         "SELECT u.id, u.username, u.display_name, u.avatar_id, u.personal_message, u.preferred_presence, \
          EXISTS (SELECT 1 FROM user_sessions s WHERE s.user_id = u.id \
          AND s.revoked_at IS NULL AND s.expires_at > NOW() \
-         AND s.last_seen_at > NOW() - INTERVAL '90 seconds') AS active \
+         AND s.last_seen_at > NOW() - INTERVAL '90 seconds') AS active, \
+         COALESCE((SELECT COUNT(*) FROM direct_conversations dc \
+         JOIN conversation_members cm ON cm.conversation_id = dc.conversation_id AND cm.user_id = $1 \
+         JOIN messages m ON m.conversation_id = dc.conversation_id \
+         WHERE ((dc.user_low = $1 AND dc.user_high = u.id) \
+         OR (dc.user_high = $1 AND dc.user_low = u.id)) \
+         AND m.sender_id = u.id AND m.created_at > cm.last_read_at), 0) AS unread_count \
          FROM friendships f JOIN users u ON u.id = f.friend_id \
          WHERE f.user_id = $1 ORDER BY u.username LIMIT 200",
     )
@@ -51,8 +58,8 @@ pub async fn contacts(
     .fetch_all(&pool)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(rows.into_iter().map(|(id, username, display_name, avatar_id, personal_message, preferred, active)| Contact {
-        id, username, display_name, avatar_id, personal_message,
+    Ok(Json(rows.into_iter().map(|(id, username, display_name, avatar_id, personal_message, preferred, active, unread_count)| Contact {
+        id, username, display_name, avatar_id, personal_message, unread_count,
         presence: Some(crate::presence::contact_presence(&preferred, active).to_owned()),
     }).collect()))
 }
@@ -73,7 +80,7 @@ pub async fn incoming(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(rows.into_iter().map(|(id, user_id, username, display_name, avatar_id, personal_message)| PendingRequest {
         id,
-        sender: Contact { id: user_id, username, display_name, avatar_id, personal_message, presence: None },
+        sender: Contact { id: user_id, username, display_name, avatar_id, personal_message, unread_count: 0, presence: None },
     }).collect()))
 }
 
