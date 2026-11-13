@@ -43,6 +43,7 @@ fn app(pool: PgPool) -> Router {
         .route("/conversations/with/{username}", post(messages::open_direct))
         .route("/conversations/{id}/messages", get(messages::history).post(messages::send))
         .route("/conversations/{id}/messages/page", get(messages::history_page))
+        .route("/conversations/{id}/read", post(messages::mark_read))
         .route("/friends/requests", get(friends::incoming).post(friends::send_request))
         .route("/friends/requests/{id}/accept", post(friends::accept_request))
         .route("/friends/requests/{id}/decline", post(friends::decline_request))
