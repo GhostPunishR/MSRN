@@ -487,10 +487,16 @@ public final class MainActivity extends Activity {
     }
 
     private void renderCachedMessages(View screen) {
+        renderCachedMessages(screen, false);
+    }
+
+    private void renderCachedMessages(View screen, boolean preservePosition) {
         LinearLayout history = screen.findViewById(R.id.chat_history);
         ScrollView scroll = screen.findViewById(R.id.chat_scroll);
-        boolean wasAtBottom = scroll.getScrollY() + scroll.getHeight()
-            >= history.getHeight() - 64;
+        int oldHeight = history.getHeight();
+        int oldScrollY = scroll.getScrollY();
+        boolean wasAtBottom = !preservePosition && oldScrollY + scroll.getHeight()
+            >= oldHeight - 64;
         history.removeAllViews();
         for (JSONObject message : cachedMessages.values()) {
             MessageBubbles.add(history, message, myUserId);
@@ -500,7 +506,13 @@ public final class MainActivity extends Activity {
             empty.setText("Aucun message.");
             history.addView(empty);
         }
-        if (wasAtBottom) {
+        if (preservePosition) {
+            scroll.post(() -> {
+                if (screen.getParent() != null) {
+                    scroll.scrollTo(0, Math.max(0, oldScrollY + history.getHeight() - oldHeight));
+                }
+            });
+        } else if (wasAtBottom) {
             scroll.post(() -> {
                 if (screen.getParent() != null) scroll.fullScroll(View.FOCUS_DOWN);
             });
@@ -570,7 +582,7 @@ public final class MainActivity extends Activity {
                     cachedMessages.putAll(combined);
                     olderCursor = page.optString("next_before", null);
                     loadingOlder = false;
-                    renderCachedMessages(screen);
+                    renderCachedMessages(screen, true);
                     status.setText(olderCursor == null ? "Début de la conversation atteint." :
                         cachedMessages.size() + " messages affichés.");
                 });
