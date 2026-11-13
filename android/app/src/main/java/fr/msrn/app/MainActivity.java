@@ -4,6 +4,8 @@
 package fr.msrn.app;
 
 import android.app.Activity;
+import fr.msrn.app.network.AuthApi;
+import org.json.JSONObject;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -28,6 +30,7 @@ public final class MainActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final StringBuilder demoMessages = new StringBuilder("Camille : Salut !\n");
     private boolean invitationAccepted = false;
+    private String sessionToken;
     private String nickname = "Moi";
 
     @Override
@@ -98,9 +101,106 @@ public final class MainActivity extends Activity {
                 getPreferences(MODE_PRIVATE).edit().putString("nickname", nickname).apply();
                 Toast.makeText(this, "Pseudo enregistré sur cet appareil", Toast.LENGTH_SHORT).show();
             });
+            screen.findViewById(R.id.open_auth).setOnClickListener(v -> showScreen(R.layout.screen_auth));
             TextView status = screen.findViewById(R.id.server_status);
             screen.findViewById(R.id.check_server).setOnClickListener(v -> checkServer(status));
+        } else if (layoutId == R.layout.screen_auth) {
+            setupAuthScreen(screen);
         }
+    }
+
+    private void setupAuthScreen(View screen) {
+        EditText username = screen.findViewById(R.id.auth_username);
+        EditText displayName = screen.findViewById(R.id.auth_display_name);
+        EditText password = screen.findViewById(R.id.auth_password);
+        TextView status = screen.findViewById(R.id.auth_status);
+        TextView identity = screen.findViewById(R.id.auth_identity);
+        Button login = screen.findViewById(R.id.auth_login);
+        Button register = screen.findViewById(R.id.auth_register);
+        Button logout = screen.findViewById(R.id.auth_logout);
+        identity.setText(sessionToken == null ? "Non connecté" : "Session active (en mémoire)");
+        logout.setEnabled(sessionToken != null);
+
+        login.setOnClickListener(v -> authenticate(screen, false));
+        register.setOnClickListener(v -> authenticate(screen, true));
+        logout.setOnClickListener(v -> {
+            if (sessionToken == null) return;
+            String token = sessionToken;
+            login.setEnabled(false);
+            register.setEnabled(false);
+            logout.setEnabled(false);
+            status.setText("Déconnexion...");
+            io.execute(() -> {
+                try {
+                    AuthApi.logout(token);
+                    sessionToken = null;
+                    runOnUiThread(() -> {
+                        identity.setText("Non connecté");
+                        status.setText("Déconnecté");
+                        login.setEnabled(true);
+                        register.setEnabled(true);
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        status.setText("Déconnexion impossible. Réessayer.");
+                        login.setEnabled(true);
+                        register.setEnabled(true);
+                        logout.setEnabled(true);
+                    });
+                }
+            });
+        });
+    }
+
+    private void authenticate(View screen, boolean createAccount) {
+        EditText username = screen.findViewById(R.id.auth_username);
+        EditText displayName = screen.findViewById(R.id.auth_display_name);
+        EditText password = screen.findViewById(R.id.auth_password);
+        TextView status = screen.findViewById(R.id.auth_status);
+        TextView identity = screen.findViewById(R.id.auth_identity);
+        Button login = screen.findViewById(R.id.auth_login);
+        Button register = screen.findViewById(R.id.auth_register);
+        Button logout = screen.findViewById(R.id.auth_logout);
+
+        String user = username.getText().toString().trim();
+        String name = displayName.getText().toString().trim();
+        String secret = password.getText().toString();
+        if (!user.matches("[a-z0-9_]{3,40}") || secret.length() < 12 || secret.getBytes(StandardCharsets.UTF_8).length > 128
+                || (createAccount && (name.isEmpty() || name.length() > 80))) {
+            status.setText("Vérifie l'identifiant, le pseudo et le mot de passe.");
+            return;
+        }
+        login.setEnabled(false);
+        register.setEnabled(false);
+        logout.setEnabled(false);
+        status.setText("Connexion en cours...");
+        io.execute(() -> {
+            try {
+                JSONObject response = createAccount
+                    ? AuthApi.register(user, name, secret)
+                    : AuthApi.login(user, secret);
+                String token = response.getString("token");
+                String actualName = response.getJSONObject("user").getString("display_name");
+                sessionToken = token;
+                runOnUiThread(() -> {
+                    identity.setText("Connecté : " + actualName);
+                    password.setText("");
+                    status.setText("Compte connecté au serveur local.");
+                    login.setEnabled(true);
+                    register.setEnabled(true);
+                    logout.setEnabled(true);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    status.setText(e instanceof AuthApi.ApiException
+                        ? "Erreur HTTP " + ((AuthApi.ApiException) e).status
+                        : "Serveur inaccessible ou réponse invalide.");
+                    login.setEnabled(true);
+                    register.setEnabled(true);
+                    logout.setEnabled(sessionToken != null);
+                });
+            }
+        });
     }
 
     private void checkServer(TextView status) {
