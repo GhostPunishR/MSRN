@@ -19,6 +19,15 @@
     <TextView android:id="@+id/chat_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sélectionnez un contact dans Contacts." android:textColor="#65758B" />
     <Button android:id="@+id/refresh_messages" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Actualiser les messages" android:textAllCaps="false" />
     <EditText android:id="@+id/message_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Écrire un message" android:inputType="textCapSentences|textMultiLine" android:maxLength="4000" />
+    <Button android:id="@+id/toggle_emoji" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Émoticônes 🙂"
+        android:textAllCaps="false" />
+    <HorizontalScrollView android:id="@+id/emoji_palette" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:visibility="gone"
+        android:fillViewport="false" android:horizontalScrollBarEnabled="false">
+        <LinearLayout android:id="@+id/emoji_items" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:orientation="horizontal" />
+    </HorizontalScrollView>
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
         <Button android:id="@+id/send_message" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Envoyer" android:textAllCaps="false" />
         <Button android:id="@+id/send_wizz" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Envoyer un Wizz" android:textAllCaps="false" />
