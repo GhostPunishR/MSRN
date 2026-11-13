@@ -1,0 +1,17 @@
+# Copyright (C) 2026 GhostPunishR and contributors
+# SPDX-License-Identifier: AGPL-3.0-only
+
+[package]
+name = "msrn-server"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+
+[dependencies]
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }
+serde_json = "1"
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }
+msrn-protocol = { path = "../msrn-protocol" }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
