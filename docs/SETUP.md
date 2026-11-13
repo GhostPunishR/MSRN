@@ -197,3 +197,9 @@ Android sends a typing event at most once per 1.5 seconds during input, sends a 
 While connected to a conversation WebSocket, Android can send the exact JSON frame `{"type":"wizz"}`. The server associates the event with the authenticated connection, relays it only to other subscribers of that conversation, and enforces a 10-second cooldown per connection. The receiving Android screen shows a transient status, animates a shake, and vibrates when hardware permits. The sender also sees a local confirmation and animation.
 
 Wizz events are ephemeral and are not stored or delivered to offline contacts. They are process-local and do not propagate across multiple server replicas. Cooldowns are per connection, not per user across devices or reconnects. The feature requires a live WebSocket connection and has not yet been compiled or integration-tested.
+
+## Emoji picker and legacy emoticons
+
+The Android chat screen includes a collapsible horizontal palette of 20 Unicode emoji. Selecting an emoji inserts it at the current text cursor or replaces the selected range. The existing 4,000-character message limit remains enforced. Emoji are sent as normal UTF-8 message text through the existing authenticated HTTP message API, without new database columns or server endpoints.
+
+The chat history renders common legacy text shortcuts such as `:-)`, `:)`, `:D`, `;)`, `:(`, `:P`, `:'(`, and `<3` as Unicode emoji. This substitution is display-only: stored message bodies are not rewritten. This is a lightweight original emoji experience, not a licensed MSN asset pack. Compilation and device testing are still pending.
