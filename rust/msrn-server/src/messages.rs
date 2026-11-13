@@ -219,8 +219,10 @@ pub async fn mark_read(
     let (_, user) = current_user(&pool, &headers).await?;
     ensure_member(&pool, conversation_id, user.id).await?;
     let result = sqlx::query(
-        "UPDATE conversation_members cm SET last_read_at = GREATEST(cm.last_read_at, m.created_at) \\
-         FROM messages m WHERE cm.conversation_id = $1 AND cm.user_id = $2 \\
+        "UPDATE conversation_members cm
+         SET last_read_at = GREATEST(cm.last_read_at, m.created_at)
+         FROM messages m
+         WHERE cm.conversation_id = $1 AND cm.user_id = $2
          AND m.conversation_id = $1 AND m.id = $3",
     )
     .bind(conversation_id).bind(user.id).bind(input.message_id)
