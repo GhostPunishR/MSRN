@@ -110,3 +110,18 @@ With two locally registered accounts, authenticate each user and use the returne
 All routes require `Authorization: Bearer <token>`. Acceptance inserts reciprocal contact relationships in one database transaction. The server applies a maximum of 200 contacts returned and 100 incoming invitations returned per request. Pagination, rate limits, blocking, and public deployment protections are not yet implemented.
 
 Android Contacts and Amis now load real server data when a session is active. Messages and Wizz remain local demonstrations. The Android token remains in process memory only.
+
+## Direct messages milestone
+
+After two users accept a friend request:
+
+1. On Android, open Contacts and tap the contact.
+2. The app calls `POST /conversations/with/{username}` to find or create a private direct conversation.
+3. `GET /conversations/{id}/messages` loads up to 100 recent persisted messages.
+4. `POST /conversations/{id}/messages` with `{"body":"Bonjour !"}` saves a new message.
+
+All endpoints require a bearer token. The server checks that users are friends before opening a direct conversation and checks conversation membership before reading or sending messages. Conversation creation uses a unique unordered pair to prevent duplicate direct conversations. The Android chat displays sender IDs for now, and refresh is manual.
+
+The Wizz button is still a local-only demonstration and does not send a network event. There is no WebSocket delivery, push notification, pagination, message deletion, block enforcement, or end-to-end encryption yet.
+
+This milestone has not been compiled or tested in this session. Run local Rust and Android builds before relying on it. Never deploy this prototype to the public internet.
