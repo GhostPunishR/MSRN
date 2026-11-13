@@ -14,6 +14,7 @@ pub struct Profile {
     username: String,
     display_name: String,
     avatar_id: i16,
+    personal_message: String,
 }
 
 #[derive(Deserialize)]
@@ -33,12 +34,12 @@ pub async fn mine(
     headers: HeaderMap,
 ) -> Result<Json<Profile>, StatusCode> {
     let (_, user) = current_user(&pool, &headers).await?;
-    let (avatar_id,): (i16,) = sqlx::query_as("SELECT avatar_id FROM users WHERE id = $1")
+    let (avatar_id, personal_message): (i16, String) = sqlx::query_as("SELECT avatar_id, personal_message FROM users WHERE id = $1")
         .bind(user.id).fetch_one(&pool).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(Profile {
         id: user.id, username: user.username,
-        display_name: user.display_name, avatar_id,
+        display_name: user.display_name, avatar_id, personal_message,
     }))
 }
 
@@ -56,9 +57,42 @@ pub async fn update(
         .bind(&name).bind(input.avatar_id).bind(user.id)
         .execute(&pool).await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let (personal_message,): (String,) = sqlx::query_as("SELECT personal_message FROM users WHERE id = $1")
+        .bind(user.id).fetch_one(&pool).await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(Profile {
         id: user.id, username: user.username,
-        display_name: name, avatar_id: input.avatar_id,
+        display_name: name, avatar_id: input.avatar_id, personal_message,
+    }))
+}
+
+
+#[derive(Deserialize)]
+pub struct PersonalMessageUpdate {
+    personal_message: String,
+}
+
+pub async fn update_message(
+    State(pool): State<PgPool>,
+    headers: HeaderMap,
+    Json(input): Json<PersonalMessageUpdate>,
+) -> Result<Json<Profile>, StatusCode> {
+    let (_, user) = current_user(&pool, &headers).await?;
+    if input.personal_message.chars().count() > 160
+        || input.personal_message.chars().any(char::is_control)
+    {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let message = input.personal_message.trim().to_owned();
+    let (display_name, avatar_id): (String, i16) = sqlx::query_as(
+        "UPDATE users SET personal_message = $1 WHERE id = $2 RETURNING display_name, avatar_id",
+    )
+    .bind(&message).bind(user.id)
+    .fetch_one(&pool).await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(Profile {
+        id: user.id, username: user.username,
+        display_name, avatar_id, personal_message: message,
     }))
 }
 
