@@ -225,7 +225,7 @@ public final class MainActivity extends Activity {
         StringBuilder text = new StringBuilder();
         for (JSONObject message : cachedMessages.values()) {
             text.append(message.optString("sender_id")).append(" : ")
-                .append(message.optString("body")).append("\\n");
+                .append(message.optString("body")).append("\n");
         }
         history.setText(text.length() == 0 ? "Aucun message." : text.toString());
         Button older = screen.findViewById(R.id.load_older_messages);
