@@ -77,6 +77,20 @@ public final class AuthApi {
         return request("POST", "/conversations/" + conversationId + "/messages", body, token);
     }
 
+    public static JSONObject myPresence(String token) throws Exception {
+        return request("GET", "/presence/me", null, token);
+    }
+
+    public static JSONObject setPresence(String token, String presence) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("presence", presence);
+        return request("PUT", "/presence/me", body, token);
+    }
+
+    public static void heartbeat(String token) throws Exception {
+        request("POST", "/presence/heartbeat", null, token);
+    }
+
     public static JSONObject me(String token) throws Exception {
         return request("GET", "/auth/me", null, token);
     }
