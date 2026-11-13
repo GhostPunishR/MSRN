@@ -8,7 +8,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::Response,
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use tokio::sync::broadcast;
 use uuid::Uuid;
@@ -23,18 +23,37 @@ pub struct MessageEvent {
     pub message_id: Uuid,
 }
 
-static EVENTS: OnceLock<broadcast::Sender<MessageEvent>> = OnceLock::new();
+#[derive(Clone, Serialize)]
+struct TypingEvent {
+    #[serde(rename = "type")]
+    kind: &'static str,
+    conversation_id: Uuid,
+    sender_id: Uuid,
+    typing: bool,
+}
 
-fn events() -> &'static broadcast::Sender<MessageEvent> {
+#[derive(Clone)]
+enum LiveEvent { Message(MessageEvent), Typing(TypingEvent) }
+
+#[derive(Deserialize)]
+struct TypingInput {
+    #[serde(rename = "type")]
+    kind: String,
+    typing: bool,
+}
+
+static EVENTS: OnceLock<broadcast::Sender<LiveEvent>> = OnceLock::new();
+
+fn events() -> &'static broadcast::Sender<LiveEvent> {
     EVENTS.get_or_init(|| broadcast::channel(1024).0)
 }
 
 pub fn notify(conversation_id: Uuid, message_id: Uuid) {
-    let _ = events().send(MessageEvent {
+    let _ = events().send(LiveEvent::Message(MessageEvent {
         kind: "message_created",
         conversation_id,
         message_id,
-    });
+    }));
 }
 
 pub async fn subscribe(
@@ -58,19 +77,25 @@ pub async fn subscribe(
 
     // Subscribe before completing the handshake to minimize missed notifications.
     let receiver = events().subscribe();
-    Ok(upgrade.on_upgrade(move |socket| stream(socket, receiver, conversation_id)))
+    Ok(upgrade.on_upgrade(move |socket| stream(socket, receiver, conversation_id, user.id)))
 }
 
 async fn stream(
     mut socket: WebSocket,
-    mut receiver: broadcast::Receiver<MessageEvent>,
+    mut receiver: broadcast::Receiver<LiveEvent>,
     conversation_id: Uuid,
+    user_id: Uuid,
 ) {
+    let mut last_typing = std::time::Instant::now() - std::time::Duration::from_secs(3);
     loop {
         tokio::select! {
             event = receiver.recv() => {
                 match event {
-                    Ok(event) if event.conversation_id == conversation_id => {
+                    Ok(LiveEvent::Message(event)) if event.conversation_id == conversation_id => {
+                        let Ok(json) = serde_json::to_string(&event) else { break; };
+                        if socket.send(WsMessage::Text(json.into())).await.is_err() { break; }
+                    }
+                    Ok(LiveEvent::Typing(event)) if event.conversation_id == conversation_id && event.sender_id != user_id => {
                         let Ok(json) = serde_json::to_string(&event) else { break; };
                         if socket.send(WsMessage::Text(json.into())).await.is_err() { break; }
                     }
@@ -90,7 +115,18 @@ async fn stream(
                     Some(Ok(WsMessage::Ping(data))) => {
                         if socket.send(WsMessage::Pong(data)).await.is_err() { break; }
                     }
-                    _ => {} // Read-only notifications. Message sending stays on authenticated HTTP.
+                    Some(Ok(WsMessage::Text(text))) => {
+                        if text.len() > 128 { continue; }
+                        if let Ok(input) = serde_json::from_str::<TypingInput>(&text) {
+                            if input.kind == "typing" && last_typing.elapsed().as_millis() >= 700 {
+                                last_typing = std::time::Instant::now();
+                                let _ = events().send(LiveEvent::Typing(TypingEvent {
+                                    kind: "typing", conversation_id, sender_id: user_id, typing: input.typing,
+                                }));
+                            }
+                        }
+                    }
+                    _ => {} // Message sending stays on authenticated HTTP.
                 }
             }
         }
