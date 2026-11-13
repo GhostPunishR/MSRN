@@ -50,3 +50,7 @@
 3. Implement the smallest coherent change.
 4. Verify locally (no CI).
 5. Summarize changes, tests run, tests not run, and outstanding risks.
+
+## Additional owner restrictions
+- Never create, edit, open, close, label, or otherwise manage GitHub Issues.
+- Do not use long dashes (em dash or en dash) in documentation, code comments, commit messages, or user-facing project text. Use commas, colons, parentheses, or simple hyphens instead.
