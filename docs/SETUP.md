@@ -235,3 +235,14 @@ Android displays nonzero unread counts in bold on the contacts list, capped visu
 The Android contacts screen now refreshes its authenticated `GET /contacts` data every 15 seconds while the app is in the foreground. Quiet refreshes avoid clearing the list or showing a loading message, and overlapping refresh requests are skipped. The refresh callback is cancelled when the user leaves Contacts or the activity stops; it is scheduled again on resume when Contacts is visible. This is bounded foreground polling, not a push-based or instant WebSocket notification. It requires no new endpoint, migration, background service, or notification permission.
 
 The server-side broadcast event enum was also corrected to implement `Clone`, as required by Tokio's broadcast channel. Build and integration tests have not been run.
+
+## Targeted regression checks (manual, no CI)
+
+Run these checks locally on a development computer. Do not enable GitHub Actions or remote build services.
+
+- Rust unit tests: from `rust/`, run `cargo test -p msrn-server`. The WebSocket tests cover the serialized message, typing, and Wizz event contracts; existing pagination tests cover page size bounds. Database-backed endpoints still require separate integration tests.
+- Android JVM tests: from `android/`, run `./gradlew :app:testDebugUnitTest` with the Android SDK and JDK 17 installed. The new tests cover emoji conversion, palette uniqueness, PostgreSQL timestamp offsets, timezone conversion, and midnight rollover.
+- Database integration: start a disposable PostgreSQL instance, apply all migrations in order, register two test accounts, create a friendship and direct conversation, send messages in both directions, verify `GET /contacts` unread counts, then verify `POST /conversations/{id}/read` advances only the caller's read cursor and rejects foreign messages.
+- Android device verification: sign in on two devices/emulators, check chat history, unread badges, typing, Wizz, emoji insertion, local dates, and scroll retention when loading older pages.
+
+Known limitations: no local Rust compilation, Android build, PostgreSQL integration, or device run was performed during this repository-only update. The regression tests are committed but not yet validated by execution.
