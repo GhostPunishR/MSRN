@@ -5,6 +5,7 @@ mod auth;
 mod friends;
 mod messages;
 mod presence;
+mod profile;
 mod realtime;
 
 use std::{env, net::SocketAddr, path::Path};
@@ -34,6 +35,7 @@ fn app(pool: PgPool) -> Router {
         .route("/auth/me", get(auth::me))
         .route("/auth/logout", post(auth::logout))
         .route("/contacts", get(friends::contacts))
+        .route("/profile/me", get(profile::mine).put(profile::update))
         .route("/presence/me", get(presence::mine).put(presence::set))
         .route("/presence/heartbeat", post(presence::heartbeat))
         .route("/conversations/{id}/events", get(realtime::subscribe))
