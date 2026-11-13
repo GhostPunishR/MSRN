@@ -246,3 +246,13 @@ Run these checks locally on a development computer. Do not enable GitHub Actions
 - Android device verification: sign in on two devices/emulators, check chat history, unread badges, typing, Wizz, emoji insertion, local dates, and scroll retention when loading older pages.
 
 Known limitations: no local Rust compilation, Android build, PostgreSQL integration, or device run was performed during this repository-only update. The regression tests are committed but not yet validated by execution.
+
+## Verification record: 2026-11-13
+
+A local Java 17 compiler/runtime was available in the assistant's execution environment, but the Rust toolchain, Gradle/Android SDK, PostgreSQL client, and Docker were not. No GitHub Actions, hosted CI, or remote build was used.
+
+Executed successfully using standalone Java harnesses reproducing the checked production methods:
+- `javac` and `java`: four assertions on legacy emoji replacement and palette uniqueness passed.
+- `javac` and `java`: five offset-aware timestamp parsing and Europe/Paris conversion cases passed, including UTC `Z`, `+00`, `+01`, `+0000`, and a midnight rollover.
+
+These are smoke checks on reproduced Java logic, not execution of the repository's JUnit test classes or an Android build. No Rust unit tests, SQL integration tests, emulator tests, or end-to-end two-client tests were executed. Do not treat this record as a full quality gate pass. Follow the targeted local commands in the previous section when the required toolchains become available.
