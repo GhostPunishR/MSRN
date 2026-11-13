@@ -11,7 +11,13 @@ license = "AGPL-3.0-only"
 axum = "0.8"
 tokio = { version = "1", features = ["full"] }
 serde_json = "1"
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres"] }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid"] }
+serde = { version = "1", features = ["derive"] }
+argon2 = "0.5"
+rand = "0.8"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1", features = ["v4", "serde"] }
 msrn-protocol = { path = "../msrn-protocol" }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
