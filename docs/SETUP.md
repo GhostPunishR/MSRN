@@ -159,3 +159,11 @@ The response is ordered from oldest to newest within each page. A page contains 
 The existing `GET /conversations/{id}/messages` endpoint remains available for compatibility. Android now uses the paginated endpoint and a "Charger les anciens messages" button. Incoming WebSocket notifications reload the latest page and merge it with locally loaded older pages.
 
 Limitations: the Android cache is in memory, not persisted across process restarts. There is no scroll-position preservation, search, retention policy, or full offline history. Messages created with identical timestamps are consistently ordered by UUID as a tie-breaker. The paginated API and Android client still require local compilation and integration testing.
+
+## Presence prototype
+
+The server exposes authenticated `GET /presence/me`, `PUT /presence/me` with JSON `{"presence":"away"}`, and `POST /presence/heartbeat`. Accepted values are `online`, `away`, `busy`, `invisible`, and `offline`. The preference is stored on the user record; each authenticated session has an independent last-seen timestamp.
+
+Android sends a heartbeat every 30 seconds while the Activity is in the foreground and stops when it leaves the foreground. `GET /contacts` returns the effective `presence` of accepted contacts. A contact is considered active if any unrevoked, unexpired session sent a heartbeat within the last 90 seconds. Otherwise the contact appears offline. Invisible and explicitly offline users always appear offline to contacts, even with an active session.
+
+This is a polling-based presence prototype, not push presence updates. Contacts need to refresh the list to see changes. It does not yet include idle detection, a per-device status preference, push notifications, or an administrative presence service. The schema migration is append-only. Compilation and integration tests remain deferred.
