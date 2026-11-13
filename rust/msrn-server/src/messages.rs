@@ -203,6 +203,33 @@ pub async fn history_page(
     Ok(Json(HistoryPage { messages, next_before, has_more }))
 }
 
+#[derive(Deserialize)]
+pub struct ReadCursor {
+    pub message_id: Uuid,
+}
+
+/// Mark messages through a message actually returned to the client as read.
+/// The cursor can only advance and must belong to the authorized conversation.
+pub async fn mark_read(
+    State(pool): State<PgPool>,
+    headers: HeaderMap,
+    Path(conversation_id): Path<Uuid>,
+    Json(input): Json<ReadCursor>,
+) -> Result<StatusCode, StatusCode> {
+    let (_, user) = current_user(&pool, &headers).await?;
+    ensure_member(&pool, conversation_id, user.id).await?;
+    let result = sqlx::query(
+        "UPDATE conversation_members cm SET last_read_at = GREATEST(cm.last_read_at, m.created_at) \\
+         FROM messages m WHERE cm.conversation_id = $1 AND cm.user_id = $2 \\
+         AND m.conversation_id = $1 AND m.id = $3",
+    )
+    .bind(conversation_id).bind(user.id).bind(input.message_id)
+    .execute(&pool).await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    if result.rows_affected() == 0 { return Err(StatusCode::NOT_FOUND); }
+    Ok(StatusCode::NO_CONTENT)
+}
+
 #[cfg(test)]
 mod pagination_tests {
     use super::*;
