@@ -26,6 +26,8 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.io.InputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -37,6 +39,9 @@ public final class MainActivity extends Activity {
     private String sessionToken;
     private String nickname = "Moi";
     private int historyRequestVersion;
+    private final LinkedHashMap<String, JSONObject> cachedMessages = new LinkedHashMap<>();
+    private String olderCursor;
+    private boolean loadingOlder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +102,9 @@ public final class MainActivity extends Activity {
         String token = sessionToken;
         activeConversationId = null;
         activeContactName = username;
+        cachedMessages.clear();
+        olderCursor = null;
+        loadingOlder = false;
         showScreen(R.layout.screen_chat);
         io.execute(() -> {
             try {
@@ -126,6 +134,9 @@ public final class MainActivity extends Activity {
         title.setText(activeContactName == null ? "Choisissez un contact" : "@" + activeContactName);
         Button send = screen.findViewById(R.id.send_message);
         Button refresh = screen.findViewById(R.id.refresh_messages);
+        Button older = screen.findViewById(R.id.load_older_messages);
+        older.setEnabled(olderCursor != null && !loadingOlder);
+        older.setOnClickListener(v -> loadOlderMessages(screen));
         EditText input = screen.findViewById(R.id.message_input);
         send.setEnabled(sessionToken != null && activeConversationId != null);
         refresh.setEnabled(sessionToken != null && activeConversationId != null);
@@ -209,38 +220,90 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void renderCachedMessages(View screen) {
+        TextView history = screen.findViewById(R.id.chat_history);
+        StringBuilder text = new StringBuilder();
+        for (JSONObject message : cachedMessages.values()) {
+            text.append(message.optString("sender_id")).append(" : ")
+                .append(message.optString("body")).append("\\n");
+        }
+        history.setText(text.length() == 0 ? "Aucun message." : text.toString());
+        Button older = screen.findViewById(R.id.load_older_messages);
+        older.setEnabled(olderCursor != null && !loadingOlder);
+    }
+
     private void loadMessages(View screen) {
         if (sessionToken == null || activeConversationId == null) return;
         String token = sessionToken;
         String conversationId = activeConversationId;
         int requestVersion = ++historyRequestVersion;
-        TextView history = screen.findViewById(R.id.chat_history);
         TextView status = screen.findViewById(R.id.chat_status);
-        Button send = screen.findViewById(R.id.send_message);
-        Button refresh = screen.findViewById(R.id.refresh_messages);
-        send.setEnabled(true);
-        refresh.setEnabled(true);
-        status.setText("Chargement des messages...");
+        status.setText("Synchronisation des messages...");
         io.execute(() -> {
             try {
-                JSONArray messages = AuthApi.messages(token, conversationId);
-                StringBuilder text = new StringBuilder();
-                for (int i = 0; i < messages.length(); i++) {
-                    JSONObject message = messages.optJSONObject(i);
-                    if (message == null) continue;
-                    text.append(message.optString("sender_id")).append(" : ")
-                        .append(message.optString("body")).append("\n");
-                }
+                JSONObject page = AuthApi.messagePage(token, conversationId, null);
+                JSONArray messages = page.getJSONArray("messages");
                 runOnUiThread(() -> {
                     if (screen.getParent() == null || !token.equals(sessionToken)
                         || !conversationId.equals(activeConversationId)
                         || requestVersion != historyRequestVersion) return;
-                    history.setText(text.length() == 0 ? "Aucun message." : text.toString());
-                    status.setText("100 derniers messages. Temps réel actif si connecté.");
+                    if (cachedMessages.isEmpty()) {
+                        olderCursor = page.optString("next_before", null);
+                    }
+                    for (int i = 0; i < messages.length(); i++) {
+                        JSONObject message = messages.optJSONObject(i);
+                        if (message != null) cachedMessages.put(message.optString("id"), message);
+                    }
+                    renderCachedMessages(screen);
+                    status.setText("Messages synchronisés. " + cachedMessages.size() + " affichés.");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
-                    if (screen.getParent() != null) status.setText("Impossible de charger les messages.");
+                    if (screen.getParent() != null && requestVersion == historyRequestVersion)
+                        status.setText("Impossible de synchroniser les messages.");
+                });
+            }
+        });
+    }
+
+    private void loadOlderMessages(View screen) {
+        if (loadingOlder || olderCursor == null || sessionToken == null || activeConversationId == null) return;
+        String token = sessionToken;
+        String conversationId = activeConversationId;
+        String cursor = olderCursor;
+        loadingOlder = true;
+        renderCachedMessages(screen);
+        TextView status = screen.findViewById(R.id.chat_status);
+        status.setText("Chargement des anciens messages...");
+        io.execute(() -> {
+            try {
+                JSONObject page = AuthApi.messagePage(token, conversationId, cursor);
+                JSONArray messages = page.getJSONArray("messages");
+                runOnUiThread(() -> {
+                    if (screen.getParent() == null || !token.equals(sessionToken)
+                        || !conversationId.equals(activeConversationId)
+                        || !cursor.equals(olderCursor)) return;
+                    LinkedHashMap<String, JSONObject> combined = new LinkedHashMap<>();
+                    for (int i = 0; i < messages.length(); i++) {
+                        JSONObject message = messages.optJSONObject(i);
+                        if (message != null) combined.put(message.optString("id"), message);
+                    }
+                    combined.putAll(cachedMessages);
+                    cachedMessages.clear();
+                    cachedMessages.putAll(combined);
+                    olderCursor = page.optString("next_before", null);
+                    loadingOlder = false;
+                    renderCachedMessages(screen);
+                    status.setText(olderCursor == null ? "Début de la conversation atteint." :
+                        cachedMessages.size() + " messages affichés.");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null && conversationId.equals(activeConversationId)) {
+                        loadingOlder = false;
+                        renderCachedMessages(screen);
+                        status.setText("Chargement impossible. Réessayez.");
+                    }
                 });
             }
         });
