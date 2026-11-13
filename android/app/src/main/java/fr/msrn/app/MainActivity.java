@@ -12,6 +12,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.VibrationEffect;
+import android.text.TextWatcher;
+import android.text.Editable;
 import android.os.Vibrator;
 import android.content.Context;
 import android.view.LayoutInflater;
@@ -49,6 +51,16 @@ public final class MainActivity extends Activity {
     private boolean loadingOlder;
     private final Handler presenceHandler = new Handler(Looper.getMainLooper());
     private boolean foreground;
+    private long lastTypingSent;
+    private final Handler typingHandler = new Handler(Looper.getMainLooper());
+    private final Runnable stopTyping = () -> events.sendTyping(false);
+    private final Runnable hideTyping = () -> {
+        FrameLayout container = findViewById(R.id.screen_container);
+        if (container != null) {
+            TextView label = container.findViewById(R.id.chat_typing);
+            if (label != null) label.setText("");
+        }
+    };
     private final Runnable presencePulse = new Runnable() {
         @Override public void run() {
             if (!foreground) return;
@@ -75,6 +87,8 @@ public final class MainActivity extends Activity {
 
     private void showScreen(int layoutId) {
         events.close();
+        typingHandler.removeCallbacks(stopTyping);
+        typingHandler.removeCallbacks(hideTyping);
         historyRequestVersion++;
         FrameLayout container = findViewById(R.id.screen_container);
         container.removeAllViews();
@@ -292,6 +306,24 @@ public final class MainActivity extends Activity {
         older.setEnabled(olderCursor != null && !loadingOlder);
         older.setOnClickListener(v -> loadOlderMessages(screen));
         EditText input = screen.findViewById(R.id.message_input);
+        input.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (activeConversationId == null) return;
+                typingHandler.removeCallbacks(stopTyping);
+                if (s.length() == 0) {
+                    events.sendTyping(false);
+                } else {
+                    long now = android.os.SystemClock.elapsedRealtime();
+                    if (now - lastTypingSent >= 1500) {
+                        events.sendTyping(true);
+                        lastTypingSent = now;
+                    }
+                    typingHandler.postDelayed(stopTyping, 2200);
+                }
+            }
+            @Override public void afterTextChanged(Editable s) { }
+        });
         send.setEnabled(sessionToken != null && activeConversationId != null);
         refresh.setEnabled(sessionToken != null && activeConversationId != null);
         status.setText(activeConversationId == null ? "Choisissez un contact dans Contacts." : "Chargement...");
@@ -307,6 +339,8 @@ public final class MainActivity extends Activity {
             String token = sessionToken;
             String conversationId = activeConversationId;
             send.setEnabled(false);
+            typingHandler.removeCallbacks(stopTyping);
+            events.sendTyping(false);
             status.setText("Envoi...");
             io.execute(() -> {
                 try {
@@ -359,6 +393,16 @@ public final class MainActivity extends Activity {
                         loadMessages(screen);
                     }
                 });
+            }
+
+            @Override
+            public void onTyping(boolean typing) {
+                if (screen.getParent() == null || !token.equals(sessionToken)
+                    || !conversationId.equals(activeConversationId)) return;
+                TextView label = screen.findViewById(R.id.chat_typing);
+                label.setText(typing ? "Votre contact écrit un message..." : "");
+                typingHandler.removeCallbacks(hideTyping);
+                if (typing) typingHandler.postDelayed(hideTyping, 4000);
             }
 
             @Override
@@ -759,6 +803,8 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onStop() {
+        typingHandler.removeCallbacks(stopTyping);
+        typingHandler.removeCallbacks(hideTyping);
         foreground = false;
         presenceHandler.removeCallbacks(presencePulse);
         events.close();
