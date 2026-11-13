@@ -50,6 +50,23 @@ public final class AuthApi {
         requestText("POST", "/friends/requests/" + id + (accept ? "/accept" : "/decline"), null, token);
     }
 
+    public static JSONObject openConversation(String token, String username) throws Exception {
+        if (!username.matches("[a-z0-9_]{3,40}")) throw new IllegalArgumentException("Invalid username");
+        return request("POST", "/conversations/with/" + username, null, token);
+    }
+
+    public static JSONArray messages(String token, String conversationId) throws Exception {
+        if (!conversationId.matches("[0-9a-fA-F-]{36}")) throw new IllegalArgumentException("Invalid conversation ID");
+        return new JSONArray(requestText("GET", "/conversations/" + conversationId + "/messages", null, token));
+    }
+
+    public static JSONObject sendMessage(String token, String conversationId, String message) throws Exception {
+        if (!conversationId.matches("[0-9a-fA-F-]{36}")) throw new IllegalArgumentException("Invalid conversation ID");
+        JSONObject body = new JSONObject();
+        body.put("body", message);
+        return request("POST", "/conversations/" + conversationId + "/messages", body, token);
+    }
+
     public static JSONObject me(String token) throws Exception {
         return request("GET", "/auth/me", null, token);
     }
