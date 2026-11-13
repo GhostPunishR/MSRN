@@ -11,8 +11,8 @@
     <Button android:id="@+id/load_older_messages" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:text="Charger les anciens messages"
         android:textAllCaps="false" android:enabled="false" />
-    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
-        <TextView android:id="@+id/chat_history" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="18dp" android:textColor="#172B4D" android:textSize="17sp" />
+    <ScrollView android:id="@+id/chat_scroll" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:fillViewport="true">
+        <LinearLayout android:id="@+id/chat_history" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingTop="12dp" android:paddingBottom="12dp" />
     </ScrollView>
     <TextView android:id="@+id/chat_typing" android:layout_width="match_parent"
         android:layout_height="wrap_content" android:text="" android:textColor="#65758B" />
