@@ -9,12 +9,16 @@ import fr.msrn.app.network.ConversationEvents;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -42,6 +46,18 @@ public final class MainActivity extends Activity {
     private final LinkedHashMap<String, JSONObject> cachedMessages = new LinkedHashMap<>();
     private String olderCursor;
     private boolean loadingOlder;
+    private final Handler presenceHandler = new Handler(Looper.getMainLooper());
+    private boolean foreground;
+    private final Runnable presencePulse = new Runnable() {
+        @Override public void run() {
+            if (!foreground) return;
+            String token = sessionToken;
+            if (token != null) io.execute(() -> {
+                try { AuthApi.heartbeat(token); } catch (Exception ignored) { }
+            });
+            presenceHandler.postDelayed(this, 30000L);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +90,7 @@ public final class MainActivity extends Activity {
             screen.findViewById(R.id.send_friend_request).setOnClickListener(v -> sendInvitation(screen));
             loadRequests(screen);
         } else if (layoutId == R.layout.screen_profile) {
+            setupPresence(screen);
             EditText name = screen.findViewById(R.id.profile_name);
             name.setText(nickname);
             screen.findViewById(R.id.save_profile).setOnClickListener(v -> {
@@ -92,6 +109,58 @@ public final class MainActivity extends Activity {
         } else if (layoutId == R.layout.screen_auth) {
             setupAuthScreen(screen);
         }
+    }
+
+    private void setupPresence(View screen) {
+        Spinner spinner = screen.findViewById(R.id.presence_spinner);
+        String[] labels = {"En ligne", "Absent", "Occupé", "Invisible", "Hors ligne"};
+        String[] values = {"online", "away", "busy", "invisible", "offline"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
+            android.R.layout.simple_spinner_dropdown_item, labels);
+        spinner.setAdapter(adapter);
+        TextView status = screen.findViewById(R.id.presence_status);
+        Button save = screen.findViewById(R.id.save_presence);
+        save.setEnabled(sessionToken != null);
+        if (sessionToken == null) return;
+        String token = sessionToken;
+        io.execute(() -> {
+            try {
+                String current = AuthApi.myPresence(token).getString("presence");
+                runOnUiThread(() -> {
+                    if (screen.getParent() == null || !token.equals(sessionToken)) return;
+                    for (int i = 0; i < values.length; i++) {
+                        if (values[i].equals(current)) spinner.setSelection(i);
+                    }
+                    status.setText("Statut actuel : " + current);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) status.setText("Statut inaccessible.");
+                });
+            }
+        });
+        save.setOnClickListener(v -> {
+            String selected = values[spinner.getSelectedItemPosition()];
+            save.setEnabled(false);
+            io.execute(() -> {
+                try {
+                    AuthApi.setPresence(token, selected);
+                    runOnUiThread(() -> {
+                        if (screen.getParent() != null && token.equals(sessionToken)) {
+                            status.setText("Statut enregistré : " + selected);
+                            save.setEnabled(true);
+                        }
+                    });
+                } catch (Exception e) {
+                    runOnUiThread(() -> {
+                        if (screen.getParent() != null) {
+                            status.setText("Mise à jour impossible.");
+                            save.setEnabled(true);
+                        }
+                    });
+                }
+            });
+        });
     }
 
     private void openConversation(String username) {
@@ -309,6 +378,15 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private String presenceLabel(String presence) {
+        switch (presence) {
+            case "online": return "En ligne";
+            case "away": return "Absent";
+            case "busy": return "Occupé";
+            default: return "Hors ligne";
+        }
+    }
+
     private void loadContacts(View screen) {
         TextView status = screen.findViewById(R.id.contacts_status);
         LinearLayout list = screen.findViewById(R.id.contacts_list);
@@ -331,7 +409,8 @@ public final class MainActivity extends Activity {
                         JSONObject user = contacts.optJSONObject(i);
                         if (user == null) continue;
                         TextView item = new TextView(this);
-                        item.setText(user.optString("display_name") + " (@" + user.optString("username") + ")");
+                        item.setText(user.optString("display_name") + " (@" + user.optString("username") + ") : "
+                            + presenceLabel(user.optString("presence", "offline")));
                         item.setTextSize(18f);
                         item.setPadding(0, 16, 0, 16);
                         String username = user.optString("username");
@@ -569,6 +648,8 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onStop() {
+        foreground = false;
+        presenceHandler.removeCallbacks(presencePulse);
         events.close();
         super.onStop();
     }
@@ -576,6 +657,9 @@ public final class MainActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
+        foreground = true;
+        presenceHandler.removeCallbacks(presencePulse);
+        presenceHandler.post(presencePulse);
         FrameLayout container = findViewById(R.id.screen_container);
         if (container != null && container.findViewById(R.id.chat_history) != null
             && sessionToken != null && activeConversationId != null) {
