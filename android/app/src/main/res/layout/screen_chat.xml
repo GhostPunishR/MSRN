@@ -21,6 +21,6 @@
     <EditText android:id="@+id/message_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Écrire un message" android:inputType="textCapSentences|textMultiLine" android:maxLength="4000" />
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
         <Button android:id="@+id/send_message" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Envoyer" android:textAllCaps="false" />
-        <Button android:id="@+id/send_wizz" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Wizz local !" android:textAllCaps="false" />
+        <Button android:id="@+id/send_wizz" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Envoyer un Wizz" android:textAllCaps="false" />
     </LinearLayout>
 </LinearLayout>
