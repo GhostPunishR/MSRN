@@ -1,4 +1,4 @@
-# AGENTS.md — MSRN repository rules
+# AGENTS.md - MSRN repository rules
 
 ## Ownership and scope
 - Project owner: **GhostPunishR**.
