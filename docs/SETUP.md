@@ -167,3 +167,11 @@ The server exposes authenticated `GET /presence/me`, `PUT /presence/me` with JSO
 Android sends a heartbeat every 30 seconds while the Activity is in the foreground and stops when it leaves the foreground. `GET /contacts` returns the effective `presence` of accepted contacts. A contact is considered active if any unrevoked, unexpired session sent a heartbeat within the last 90 seconds. Otherwise the contact appears offline. Invisible and explicitly offline users always appear offline to contacts, even with an active session.
 
 This is a polling-based presence prototype, not push presence updates. Contacts need to refresh the list to see changes. It does not yet include idle detection, a per-device status preference, push notifications, or an administrative presence service. The schema migration is append-only. Compilation and integration tests remain deferred.
+
+## Synchronized nickname and preset avatar
+
+Authenticated `GET /profile/me` returns `id`, `username`, `display_name`, and `avatar_id`. Authenticated `PUT /profile/me` accepts JSON such as `{"display_name":"Mon pseudo","avatar_id":3}`. The server validates nonempty display names of at most 80 Unicode characters without control characters, and avatar IDs from 1 through 6. Updates are persisted in PostgreSQL.
+
+Android's Profile screen now loads and saves the server-side nickname and a choice of six built-in emoji avatars. Contacts display the synchronized nickname and selected avatar. Existing accounts receive avatar 1 by default. This is a preset-avatar milestone, not user image upload or image hosting. Avatar selection and nickname updates require a signed-in session. Existing `/auth/me` response fields remain unchanged.
+
+Compilation and integration tests remain deferred until a local development environment is available.
