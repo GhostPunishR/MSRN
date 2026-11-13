@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     Json,
 };
@@ -134,6 +134,86 @@ pub async fn history(
     Ok(Json(rows.into_iter().map(|(id, sender_id, body, created_at)| Message {
         id, sender_id, body, created_at
     }).collect()))
+}
+
+
+#[derive(Deserialize)]
+pub struct HistoryQuery {
+    pub before: Option<Uuid>,
+    pub limit: Option<i64>,
+}
+
+#[derive(Serialize)]
+pub struct HistoryPage {
+    pub messages: Vec<Message>,
+    pub next_before: Option<Uuid>,
+    pub has_more: bool,
+}
+
+fn page_limit(limit: Option<i64>) -> Result<i64, StatusCode> {
+    match limit.unwrap_or(50) {
+        value @ 1..=100 => Ok(value),
+        _ => Err(StatusCode::BAD_REQUEST),
+    }
+}
+
+/// Stable keyset pagination by (created_at, id), newest first at the database boundary.
+pub async fn history_page(
+    State(pool): State<PgPool>,
+    headers: HeaderMap,
+    Path(conversation_id): Path<Uuid>,
+    Query(query): Query<HistoryQuery>,
+) -> Result<Json<HistoryPage>, StatusCode> {
+    let (_, user) = current_user(&pool, &headers).await?;
+    ensure_member(&pool, conversation_id, user.id).await?;
+    let limit = page_limit(query.limit)?;
+
+    // Cursor must refer to a message in this same conversation.
+    let cursor: Option<(String, Uuid)> = if let Some(before) = query.before {
+        let row: Option<(String, Uuid)> = sqlx::query_as(
+            "SELECT created_at::text, id FROM messages WHERE conversation_id = $1 AND id = $2",
+        )
+        .bind(conversation_id).bind(before)
+        .fetch_optional(&pool).await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Some(row.ok_or(StatusCode::BAD_REQUEST)?)
+    } else {
+        None
+    };
+    let rows: Vec<(Uuid, Uuid, String, String)> = sqlx::query_as(
+        "SELECT id, sender_id, body, created_at::text FROM messages
+         WHERE conversation_id = $1 AND
+         ($2::timestamptz IS NULL OR (created_at, id) < ($2::timestamptz, $3::uuid))
+         ORDER BY created_at DESC, id DESC LIMIT $4",
+    )
+    .bind(conversation_id)
+    .bind(cursor.as_ref().map(|(created, _)| created.as_str()))
+    .bind(cursor.as_ref().map(|(_, id)| *id))
+    .bind(limit + 1)
+    .fetch_all(&pool).await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let has_more = rows.len() as i64 > limit;
+    let mut messages: Vec<Message> = rows.into_iter().take(limit as usize)
+        .map(|(id, sender_id, body, created_at)| Message {
+            id, sender_id, body, created_at
+        }).collect();
+    let next_before = if has_more { messages.last().map(|message| message.id) } else { None };
+    messages.reverse();
+    Ok(Json(HistoryPage { messages, next_before, has_more }))
+}
+
+#[cfg(test)]
+mod pagination_tests {
+    use super::*;
+
+    #[test]
+    fn rejects_invalid_page_sizes() {
+        assert!(page_limit(Some(0)).is_err());
+        assert!(page_limit(Some(101)).is_err());
+        assert_eq!(page_limit(None).unwrap(), 50);
+        assert_eq!(page_limit(Some(100)).unwrap(), 100);
+    }
 }
 
 pub async fn send(
