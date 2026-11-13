@@ -36,6 +36,7 @@ public final class ConversationEvents {
         void onConnected();
         void onDisconnected();
         void onTyping(boolean typing);
+        void onWizz();
     }
 
     public void connect(String token, String conversationId, Listener listener) {
@@ -75,7 +76,11 @@ public final class ConversationEvents {
             public void onMessage(WebSocket webSocket, String text) {
                 try {
                     String type = new JSONObject(text).optString("type");
-                    if ("typing".equals(type)) {
+                    if ("wizz".equals(type)) {
+                        handler.post(() -> {
+                            if (valid(expectedGeneration) && !completed) listener.onWizz();
+                        });
+                    } else if ("typing".equals(type)) {
                         boolean typing = new JSONObject(text).optBoolean("typing");
                         handler.post(() -> {
                             if (valid(expectedGeneration) && !completed) listener.onTyping(typing);
@@ -122,6 +127,10 @@ public final class ConversationEvents {
 
     private boolean valid(int expectedGeneration) {
         return active && generation == expectedGeneration;
+    }
+
+    public boolean sendWizz() {
+        return active && socket != null && socket.send("{\"type\":\"wizz\"}");
     }
 
     public void sendTyping(boolean typing) {
