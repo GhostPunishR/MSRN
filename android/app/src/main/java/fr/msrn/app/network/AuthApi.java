@@ -70,6 +70,16 @@ public final class AuthApi {
         return request("GET", path, null, token);
     }
 
+    public static void markRead(String token, String conversationId, String messageId) throws Exception {
+        if (!conversationId.matches("[0-9a-fA-F-]{36}") ||
+            !messageId.matches("[0-9a-fA-F-]{36}")) {
+            throw new IllegalArgumentException("Invalid conversation or message ID");
+        }
+        JSONObject body = new JSONObject();
+        body.put("message_id", messageId);
+        requestText("POST", "/conversations/" + conversationId + "/read", body, token);
+    }
+
     public static JSONObject sendMessage(String token, String conversationId, String message) throws Exception {
         if (!conversationId.matches("[0-9a-fA-F-]{36}")) throw new IllegalArgumentException("Invalid conversation ID");
         JSONObject body = new JSONObject();
