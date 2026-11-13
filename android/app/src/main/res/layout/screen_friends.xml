@@ -4,7 +4,20 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:padding="20dp" android:orientation="vertical">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Invitations" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
-    <TextView android:id="@+id/friend_request_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="Sam souhaite vous ajouter (démo)." android:textSize="17sp" />
-    <Button android:id="@+id/accept_friend" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="Accepter" android:textAllCaps="false" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Mes invitations" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
+    <EditText android:id="@+id/friend_username" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Identifiant du contact"
+        android:inputType="textNoSuggestions" android:maxLength="40" android:singleLine="true" />
+    <Button android:id="@+id/send_friend_request" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Envoyer une invitation" android:textAllCaps="false" />
+    <Button android:id="@+id/refresh_requests" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Actualiser les invitations" android:textAllCaps="false" />
+    <TextView android:id="@+id/friend_request_status" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Connectez-vous pour gérer vos invitations."
+        android:textColor="#65758B" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:id="@+id/requests_list" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="vertical" />
+    </ScrollView>
 </LinearLayout>
