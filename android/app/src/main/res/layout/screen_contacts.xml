@@ -4,9 +4,15 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent"
     android:padding="20dp" android:orientation="vertical">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Mes contacts" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="Démo locale. Aucun compte connecté." android:textColor="#65758B" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp" android:text="● Camille   En ligne" android:textSize="18sp" android:textColor="#21835D" />
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="● Alex   Absent" android:textSize="18sp" android:textColor="#AD7B17" />
-    <Button android:id="@+id/open_chat" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="26dp" android:text="Discuter avec Camille" android:textAllCaps="false" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Mes contacts" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
+    <Button android:id="@+id/refresh_contacts" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Actualiser" android:textAllCaps="false" />
+    <TextView android:id="@+id/contacts_status" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Connectez-vous pour voir vos contacts."
+        android:textColor="#65758B" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:id="@+id/contacts_list" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:orientation="vertical" />
+    </ScrollView>
 </LinearLayout>
