@@ -14,6 +14,8 @@
     <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
         <TextView android:id="@+id/chat_history" android:layout_width="match_parent" android:layout_height="wrap_content" android:paddingTop="18dp" android:textColor="#172B4D" android:textSize="17sp" />
     </ScrollView>
+    <TextView android:id="@+id/chat_typing" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="" android:textColor="#65758B" />
     <TextView android:id="@+id/chat_status" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Sélectionnez un contact dans Contacts." android:textColor="#65758B" />
     <Button android:id="@+id/refresh_messages" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Actualiser les messages" android:textAllCaps="false" />
     <EditText android:id="@+id/message_input" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Écrire un message" android:inputType="textCapSentences|textMultiLine" android:maxLength="4000" />
