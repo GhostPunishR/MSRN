@@ -5,6 +5,7 @@ package fr.msrn.app;
 
 import android.app.Activity;
 import fr.msrn.app.network.AuthApi;
+import fr.msrn.app.network.ConversationEvents;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import android.os.Bundle;
@@ -30,6 +31,7 @@ import java.util.concurrent.Executors;
 
 public final class MainActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
+    private final ConversationEvents events = new ConversationEvents();
     private String activeConversationId;
     private String activeContactName;
     private String sessionToken;
@@ -49,6 +51,7 @@ public final class MainActivity extends Activity {
     }
 
     private void showScreen(int layoutId) {
+        events.close();
         FrameLayout container = findViewById(R.id.screen_container);
         container.removeAllViews();
         View screen = LayoutInflater.from(this).inflate(layoutId, container, false);
@@ -102,7 +105,8 @@ public final class MainActivity extends Activity {
                     activeConversationId = id;
                     FrameLayout container = findViewById(R.id.screen_container);
                     if (container.findViewById(R.id.chat_history) != null) {
-                        loadMessages(container);
+                        setupChat(container.getChildAt(0));
+                        connectEvents(container.getChildAt(0), token, id);
                     }
                 });
             } catch (Exception e) {
@@ -125,7 +129,10 @@ public final class MainActivity extends Activity {
         send.setEnabled(sessionToken != null && activeConversationId != null);
         refresh.setEnabled(sessionToken != null && activeConversationId != null);
         status.setText(activeConversationId == null ? "Choisissez un contact dans Contacts." : "Chargement...");
-        if (activeConversationId != null) loadMessages(screen);
+        if (activeConversationId != null) {
+            loadMessages(screen);
+            if (sessionToken != null) connectEvents(screen, sessionToken, activeConversationId);
+        }
         refresh.setOnClickListener(v -> loadMessages(screen));
         send.setOnClickListener(v -> {
             if (sessionToken == null || activeConversationId == null) return;
@@ -165,6 +172,31 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void connectEvents(View screen, String token, String conversationId) {
+        events.connect(token, conversationId, new ConversationEvents.Listener() {
+            @Override
+            public void onMessageChanged() {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null && token.equals(sessionToken)
+                        && conversationId.equals(activeConversationId)) {
+                        loadMessages(screen);
+                    }
+                });
+            }
+
+            @Override
+            public void onDisconnected() {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null && token.equals(sessionToken)
+                        && conversationId.equals(activeConversationId)) {
+                        TextView status = screen.findViewById(R.id.chat_status);
+                        status.setText("Temps réel déconnecté. Actualisez manuellement.");
+                    }
+                });
+            }
+        });
+    }
+
     private void loadMessages(View screen) {
         if (sessionToken == null || activeConversationId == null) return;
         String token = sessionToken;
@@ -184,7 +216,7 @@ public final class MainActivity extends Activity {
                     JSONObject message = messages.optJSONObject(i);
                     if (message == null) continue;
                     text.append(message.optString("sender_id")).append(" : ")
-                        .append(message.optString("body")).append("\\n");
+                        .append(message.optString("body")).append("\n");
                 }
                 runOnUiThread(() -> {
                     if (screen.getParent() == null || !token.equals(sessionToken)
@@ -460,6 +492,7 @@ public final class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        events.close();
         io.shutdownNow();
         super.onDestroy();
     }
