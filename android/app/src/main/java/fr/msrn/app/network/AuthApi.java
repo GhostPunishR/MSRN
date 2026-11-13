@@ -4,6 +4,7 @@
 package fr.msrn.app.network;
 
 import org.json.JSONObject;
+import org.json.JSONArray;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -30,6 +31,25 @@ public final class AuthApi {
         return request("POST", "/auth/register", body, null);
     }
 
+    public static JSONArray contacts(String token) throws Exception {
+        return new JSONArray(requestText("GET", "/contacts", null, token));
+    }
+
+    public static JSONArray incomingRequests(String token) throws Exception {
+        return new JSONArray(requestText("GET", "/friends/requests", null, token));
+    }
+
+    public static void sendFriendRequest(String token, String username) throws Exception {
+        JSONObject body = new JSONObject();
+        body.put("username", username);
+        requestText("POST", "/friends/requests", body, token);
+    }
+
+    public static void respondToRequest(String token, String id, boolean accept) throws Exception {
+        if (!id.matches("[0-9a-fA-F-]{36}")) throw new IllegalArgumentException("Invalid ID");
+        requestText("POST", "/friends/requests/" + id + (accept ? "/accept" : "/decline"), null, token);
+    }
+
     public static JSONObject me(String token) throws Exception {
         return request("GET", "/auth/me", null, token);
     }
@@ -39,6 +59,11 @@ public final class AuthApi {
     }
 
     private static JSONObject request(String method, String path, JSONObject body, String token) throws Exception {
+        String result = requestText(method, path, body, token);
+        return result.isEmpty() ? new JSONObject() : new JSONObject(result);
+    }
+
+    private static String requestText(String method, String path, JSONObject body, String token) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(BASE_URL + path).openConnection();
         try {
             connection.setRequestMethod(method);
@@ -56,7 +81,7 @@ public final class AuthApi {
             }
 
             int code = connection.getResponseCode();
-            if (code == 204) return new JSONObject();
+            if (code == 204 || code == 201 && body != null && path.equals("/friends/requests")) return "";
             InputStream stream = code >= 400 ? connection.getErrorStream() : connection.getInputStream();
             String text = "";
             if (stream != null) {
@@ -70,7 +95,7 @@ public final class AuthApi {
                 }
             }
             if (code >= 400) throw new ApiException(code);
-            return new JSONObject(text);
+            return text;
         } finally {
             connection.disconnect();
         }
