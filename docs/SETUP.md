@@ -125,3 +125,13 @@ All endpoints require a bearer token. The server checks that users are friends b
 The Wizz button is still a local-only demonstration and does not send a network event. There is no WebSocket delivery, push notification, pagination, message deletion, block enforcement, or end-to-end encryption yet.
 
 This milestone has not been compiled or tested in this session. Run local Rust and Android builds before relying on it. Never deploy this prototype to the public internet.
+
+## Real-time notifications prototype
+
+`GET /conversations/{id}/events` upgrades to an authenticated WebSocket. Clients send the same `Authorization: Bearer <token>` header used for HTTP. Only members of the requested conversation can subscribe.
+
+When `POST /conversations/{id}/messages` successfully stores a message, the Rust server broadcasts a `{"type":"message_created","conversation_id":"...","message_id":"..."}` notification to connected subscribers of that conversation. Android uses the notification to reload the history over HTTP. A `{"type":"resync_required"}` event means the receiver fell behind and must reload history.
+
+The notification bus is process-local and is suitable only for one Rust server process. It does not guarantee delivery while offline, and there is no automatic reconnect yet. Android keeps manual refresh as a fallback. Message content is not included in WebSocket notifications. A production multi-instance deployment needs a durable or cross-instance notification mechanism, session revocation handling for active sockets, WSS, reconnection, and stronger security controls.
+
+Android debug builds permit HTTP and WS to the local emulator host only. Release builds must use HTTPS and WSS with an appropriately configured server.
