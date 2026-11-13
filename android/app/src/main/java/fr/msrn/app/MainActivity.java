@@ -6,6 +6,7 @@ package fr.msrn.app;
 import android.app.Activity;
 import fr.msrn.app.network.AuthApi;
 import org.json.JSONObject;
+import org.json.JSONArray;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
@@ -15,6 +16,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,7 +31,6 @@ import java.util.concurrent.Executors;
 public final class MainActivity extends Activity {
     private final ExecutorService io = Executors.newSingleThreadExecutor();
     private final StringBuilder demoMessages = new StringBuilder("Camille : Salut !\n");
-    private boolean invitationAccepted = false;
     private String sessionToken;
     private String nickname = "Moi";
 
@@ -53,7 +54,8 @@ public final class MainActivity extends Activity {
         container.addView(screen);
 
         if (layoutId == R.layout.screen_contacts) {
-            screen.findViewById(R.id.open_chat).setOnClickListener(v -> showScreen(R.layout.screen_chat));
+            screen.findViewById(R.id.refresh_contacts).setOnClickListener(v -> loadContacts(screen));
+            loadContacts(screen);
         } else if (layoutId == R.layout.screen_chat) {
             TextView history = screen.findViewById(R.id.chat_history);
             history.setText(demoMessages.toString());
@@ -77,17 +79,9 @@ public final class MainActivity extends Activity {
                 ).start();
             });
         } else if (layoutId == R.layout.screen_friends) {
-            TextView status = screen.findViewById(R.id.friend_request_status);
-            Button accept = screen.findViewById(R.id.accept_friend);
-            if (invitationAccepted) {
-                status.setText("Sam a été ajouté (démo locale).");
-                accept.setEnabled(false);
-            }
-            accept.setOnClickListener(v -> {
-                invitationAccepted = true;
-                status.setText("Sam a été ajouté (démo locale).");
-                accept.setEnabled(false);
-            });
+            screen.findViewById(R.id.refresh_requests).setOnClickListener(v -> loadRequests(screen));
+            screen.findViewById(R.id.send_friend_request).setOnClickListener(v -> sendInvitation(screen));
+            loadRequests(screen);
         } else if (layoutId == R.layout.screen_profile) {
             EditText name = screen.findViewById(R.id.profile_name);
             name.setText(nickname);
@@ -107,6 +101,135 @@ public final class MainActivity extends Activity {
         } else if (layoutId == R.layout.screen_auth) {
             setupAuthScreen(screen);
         }
+    }
+
+    private void loadContacts(View screen) {
+        TextView status = screen.findViewById(R.id.contacts_status);
+        LinearLayout list = screen.findViewById(R.id.contacts_list);
+        list.removeAllViews();
+        if (sessionToken == null) {
+            status.setText("Connectez-vous dans Profil, Mon compte MSRN.");
+            return;
+        }
+        String token = sessionToken;
+        status.setText("Chargement des contacts...");
+        io.execute(() -> {
+            try {
+                JSONArray contacts = AuthApi.contacts(token);
+                runOnUiThread(() -> {
+                    if (sessionToken == null || !sessionToken.equals(token)) return;
+                    if (screen.getParent() == null) return;
+                    status.setText(contacts.length() == 0 ? "Aucun contact pour le moment." : contacts.length() + " contact(s)");
+                    list.removeAllViews();
+                    for (int i = 0; i < contacts.length(); i++) {
+                        JSONObject user = contacts.optJSONObject(i);
+                        if (user == null) continue;
+                        TextView item = new TextView(this);
+                        item.setText(user.optString("display_name") + " (@" + user.optString("username") + ")");
+                        item.setTextSize(18f);
+                        item.setPadding(0, 16, 0, 16);
+                        list.addView(item);
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) status.setText("Impossible de charger les contacts.");
+                });
+            }
+        });
+    }
+
+    private void loadRequests(View screen) {
+        TextView status = screen.findViewById(R.id.friend_request_status);
+        LinearLayout list = screen.findViewById(R.id.requests_list);
+        list.removeAllViews();
+        if (sessionToken == null) {
+            status.setText("Connectez-vous dans Profil, Mon compte MSRN.");
+            return;
+        }
+        String token = sessionToken;
+        status.setText("Chargement des invitations...");
+        io.execute(() -> {
+            try {
+                JSONArray requests = AuthApi.incomingRequests(token);
+                runOnUiThread(() -> {
+                    if (sessionToken == null || !sessionToken.equals(token)) return;
+                    if (screen.getParent() == null) return;
+                    list.removeAllViews();
+                    status.setText(requests.length() == 0 ? "Aucune invitation reçue." : requests.length() + " invitation(s)");
+                    for (int i = 0; i < requests.length(); i++) {
+                        JSONObject request = requests.optJSONObject(i);
+                        if (request == null) continue;
+                        String id = request.optString("id");
+                        JSONObject sender = request.optJSONObject("sender");
+                        if (sender == null) continue;
+                        TextView name = new TextView(this);
+                        name.setText(sender.optString("display_name") + " (@" + sender.optString("username") + ")");
+                        name.setTextSize(18f);
+                        list.addView(name);
+                        Button accept = new Button(this);
+                        accept.setText("Accepter");
+                        accept.setOnClickListener(v -> respondToInvitation(screen, id, true));
+                        list.addView(accept);
+                        Button decline = new Button(this);
+                        decline.setText("Refuser");
+                        decline.setOnClickListener(v -> respondToInvitation(screen, id, false));
+                        list.addView(decline);
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) status.setText("Impossible de charger les invitations.");
+                });
+            }
+        });
+    }
+
+    private void sendInvitation(View screen) {
+        TextView status = screen.findViewById(R.id.friend_request_status);
+        EditText username = screen.findViewById(R.id.friend_username);
+        String target = username.getText().toString().trim();
+        if (sessionToken == null) {
+            status.setText("Connectez-vous d'abord.");
+            return;
+        }
+        if (!target.matches("[a-z0-9_]{3,40}")) {
+            status.setText("Identifiant invalide.");
+            return;
+        }
+        String token = sessionToken;
+        status.setText("Envoi de l'invitation...");
+        io.execute(() -> {
+            try {
+                AuthApi.sendFriendRequest(token, target);
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) status.setText("Invitation envoyée.");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) status.setText("Envoi impossible. Vérifier le compte ou une invitation existante.");
+                });
+            }
+        });
+    }
+
+    private void respondToInvitation(View screen, String id, boolean accept) {
+        if (sessionToken == null) return;
+        String token = sessionToken;
+        TextView status = screen.findViewById(R.id.friend_request_status);
+        status.setText("Traitement...");
+        io.execute(() -> {
+            try {
+                AuthApi.respondToRequest(token, id, accept);
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) loadRequests(screen);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null) status.setText("Action impossible. Actualisez les invitations.");
+                });
+            }
+        });
     }
 
     private void setupAuthScreen(View screen) {
