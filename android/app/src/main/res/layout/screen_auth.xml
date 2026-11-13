@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2026 GhostPunishR and contributors -->
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:padding="20dp" android:orientation="vertical">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="Mon compte MSRN" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
+        <TextView android:id="@+id/auth_identity" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="12dp"
+            android:text="Non connecté" android:textColor="#65758B" />
+        <EditText android:id="@+id/auth_username" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="20dp"
+            android:hint="Identifiant (minuscules, chiffres, _)" android:inputType="textNoSuggestions"
+            android:maxLength="40" android:singleLine="true" />
+        <EditText android:id="@+id/auth_display_name" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Pseudo public (inscription)"
+            android:maxLength="80" android:singleLine="true" />
+        <EditText android:id="@+id/auth_password" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:hint="Mot de passe (12 caractères minimum)"
+            android:inputType="textPassword" />
+        <Button android:id="@+id/auth_login" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Se connecter" android:textAllCaps="false" />
+        <Button android:id="@+id/auth_register" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Créer un compte" android:textAllCaps="false" />
+        <Button android:id="@+id/auth_logout" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:text="Se déconnecter" android:textAllCaps="false" />
+        <TextView android:id="@+id/auth_status" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:layout_marginTop="12dp"
+            android:text="Serveur local uniquement, émulateur Android." android:textColor="#65758B" />
+    </LinearLayout>
+</ScrollView>
