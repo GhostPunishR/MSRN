@@ -92,16 +92,65 @@ public final class MainActivity extends Activity {
         } else if (layoutId == R.layout.screen_profile) {
             setupPresence(screen);
             EditText name = screen.findViewById(R.id.profile_name);
+            Spinner avatar = screen.findViewById(R.id.avatar_spinner);
+            TextView profileStatus = screen.findViewById(R.id.profile_status);
+            Button saveProfile = screen.findViewById(R.id.save_profile);
+            String[] avatars = {"🙂 Classique", "😎 Cool", "🐱 Chat", "⭐ Étoile", "🎮 Gamer", "💜 Coeur"};
+            avatar.setAdapter(new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, avatars));
             name.setText(nickname);
-            screen.findViewById(R.id.save_profile).setOnClickListener(v -> {
+            saveProfile.setEnabled(sessionToken != null);
+            if (sessionToken != null) {
+                String token = sessionToken;
+                io.execute(() -> {
+                    try {
+                        JSONObject profile = AuthApi.myProfile(token);
+                        runOnUiThread(() -> {
+                            if (screen.getParent() == null || !token.equals(sessionToken)) return;
+                            nickname = profile.optString("display_name", nickname);
+                            name.setText(nickname);
+                            avatar.setSelection(Math.max(0, Math.min(5, profile.optInt("avatar_id", 1) - 1)));
+                            profileStatus.setText("Profil synchronisé.");
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            if (screen.getParent() != null) profileStatus.setText("Profil inaccessible.");
+                        });
+                    }
+                });
+            }
+            saveProfile.setOnClickListener(v -> {
                 String value = name.getText().toString().trim();
-                if (value.isEmpty()) {
-                    name.setError("Pseudo requis");
+                if (value.isEmpty() || value.codePointCount(0, value.length()) > 80) {
+                    name.setError("Pseudo requis, 80 caractères maximum");
                     return;
                 }
-                nickname = value;
-                getPreferences(MODE_PRIVATE).edit().putString("nickname", nickname).apply();
-                Toast.makeText(this, "Pseudo enregistré sur cet appareil", Toast.LENGTH_SHORT).show();
+                if (sessionToken == null) {
+                    profileStatus.setText("Connectez-vous pour enregistrer le profil.");
+                    return;
+                }
+                String token = sessionToken;
+                int avatarId = avatar.getSelectedItemPosition() + 1;
+                saveProfile.setEnabled(false);
+                io.execute(() -> {
+                    try {
+                        JSONObject profile = AuthApi.updateProfile(token, value, avatarId);
+                        runOnUiThread(() -> {
+                            if (screen.getParent() == null || !token.equals(sessionToken)) return;
+                            nickname = profile.optString("display_name", value);
+                            getPreferences(MODE_PRIVATE).edit().putString("nickname", nickname).apply();
+                            profileStatus.setText("Pseudo et avatar enregistrés sur MSRN.");
+                            saveProfile.setEnabled(true);
+                        });
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            if (screen.getParent() != null) {
+                                profileStatus.setText("Enregistrement impossible.");
+                                saveProfile.setEnabled(true);
+                            }
+                        });
+                    }
+                });
             });
             screen.findViewById(R.id.open_auth).setOnClickListener(v -> showScreen(R.layout.screen_auth));
             TextView status = screen.findViewById(R.id.server_status);
@@ -376,6 +425,17 @@ public final class MainActivity extends Activity {
                 });
             }
         });
+    }
+
+    private String avatarLabel(int id) {
+        switch (id) {
+            case 2: return "😎";
+            case 3: return "🐱";
+            case 4: return "⭐";
+            case 5: return "🎮";
+            case 6: return "💜";
+            default: return "🙂";
+        }
     }
 
     private String presenceLabel(String presence) {
