@@ -776,6 +776,7 @@ public final class MainActivity extends Activity {
                 try {
                     AuthApi.logout(token);
                     sessionToken = null;
+                    myUserId = null;
                     runOnUiThread(() -> {
                         identity.setText("Non connecté");
                         activeConversationId = null;
