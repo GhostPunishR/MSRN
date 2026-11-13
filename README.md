@@ -19,13 +19,13 @@ The architecture favors clear module boundaries, local development, privacy, and
 
 ## Repository layout
 
-- `android/` — Android application and platform integrations.
-- `rust/msrn-server/` — Rust API and realtime service.
-- `rust/msrn-protocol/` — Shared protocol contracts.
-- `database/migrations/` — Versioned SQL schema changes.
-- `infrastructure/` — Local development infrastructure.
-- `docs/` — Evolving technical documentation, decisions, and setup instructions.
-- `AGENTS.md` — Repository contribution and automation rules.
+- `android/` - Android application and platform integrations.
+- `rust/msrn-server/` - Rust API and realtime service.
+- `rust/msrn-protocol/` - Shared protocol contracts.
+- `database/migrations/` - Versioned SQL schema changes.
+- `infrastructure/` - Local development infrastructure.
+- `docs/` - Evolving technical documentation, decisions, and setup instructions.
+- `AGENTS.md` - Repository contribution and automation rules.
 
 ## Project principles
 
