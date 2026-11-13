@@ -7,6 +7,7 @@ import android.app.Activity;
 import fr.msrn.app.network.AuthApi;
 import fr.msrn.app.network.ConversationEvents;
 import fr.msrn.app.chat.EmojiSupport;
+import fr.msrn.app.chat.MessageBubbles;
 import org.json.JSONObject;
 import org.json.JSONArray;
 import android.os.Bundle;
@@ -25,6 +26,7 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
+import android.widget.ScrollView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,6 +48,7 @@ public final class MainActivity extends Activity {
     private String activeContactName;
     private String activeContactProfile = "";
     private String sessionToken;
+    private String myUserId;
     private String nickname = "Moi";
     private int historyRequestVersion;
     private final LinkedHashMap<String, JSONObject> cachedMessages = new LinkedHashMap<>();
@@ -484,13 +487,24 @@ public final class MainActivity extends Activity {
     }
 
     private void renderCachedMessages(View screen) {
-        TextView history = screen.findViewById(R.id.chat_history);
-        StringBuilder text = new StringBuilder();
+        LinearLayout history = screen.findViewById(R.id.chat_history);
+        ScrollView scroll = screen.findViewById(R.id.chat_scroll);
+        boolean wasAtBottom = scroll.getScrollY() + scroll.getHeight()
+            >= history.getHeight() - 64;
+        history.removeAllViews();
         for (JSONObject message : cachedMessages.values()) {
-            text.append(message.optString("sender_id")).append(" : ")
-                .append(EmojiSupport.display(message.optString("body"))).append("\n");
+            MessageBubbles.add(history, message, myUserId);
         }
-        history.setText(text.length() == 0 ? "Aucun message." : text.toString());
+        if (cachedMessages.isEmpty()) {
+            TextView empty = new TextView(this);
+            empty.setText("Aucun message.");
+            history.addView(empty);
+        }
+        if (wasAtBottom) {
+            scroll.post(() -> {
+                if (screen.getParent() != null) scroll.fullScroll(View.FOCUS_DOWN);
+            });
+        }
         Button older = screen.findViewById(R.id.load_older_messages);
         older.setEnabled(olderCursor != null && !loadingOlder);
     }
@@ -811,7 +825,9 @@ public final class MainActivity extends Activity {
                     : AuthApi.login(user, secret);
                 String token = response.getString("token");
                 String actualName = response.getJSONObject("user").getString("display_name");
+                String userId = response.getJSONObject("user").getString("id");
                 sessionToken = token;
+                myUserId = userId;
                 runOnUiThread(() -> {
                     presenceHandler.removeCallbacks(presencePulse);
                     if (foreground) presenceHandler.post(presencePulse);
