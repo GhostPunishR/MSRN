@@ -14,6 +14,16 @@
         android:layout_height="wrap_content" android:text="Connectez-vous pour synchroniser votre profil." />
     <Button android:id="@+id/save_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enregistrer sur MSRN" android:textAllCaps="false" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Message personnel" android:layout_marginTop="12dp" />
+    <EditText android:id="@+id/personal_message_input" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:hint="Votre humeur du jour"
+        android:maxLength="160" android:singleLine="true" />
+    <Button android:id="@+id/save_personal_message" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Enregistrer mon message"
+        android:textAllCaps="false" />
+    <TextView android:id="@+id/personal_message_status" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Visible par vos contacts." />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="Mon statut de présence" android:layout_marginTop="16dp" />
     <Spinner android:id="@+id/presence_spinner" android:layout_width="match_parent"
         android:layout_height="wrap_content" />
