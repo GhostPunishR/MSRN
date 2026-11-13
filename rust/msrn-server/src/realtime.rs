@@ -33,7 +33,15 @@ struct TypingEvent {
 }
 
 #[derive(Clone)]
-enum LiveEvent { Message(MessageEvent), Typing(TypingEvent) }
+#[derive(Clone, Serialize)]
+struct WizzEvent {
+    #[serde(rename = "type")]
+    kind: &'static str,
+    conversation_id: Uuid,
+    sender_id: Uuid,
+}
+
+enum LiveEvent { Message(MessageEvent), Typing(TypingEvent), Wizz(WizzEvent) }
 
 #[derive(Deserialize)]
 struct TypingInput {
@@ -87,6 +95,7 @@ async fn stream(
     user_id: Uuid,
 ) {
     let mut last_typing = std::time::Instant::now() - std::time::Duration::from_secs(3);
+    let mut last_wizz = std::time::Instant::now() - std::time::Duration::from_secs(15);
     loop {
         tokio::select! {
             event = receiver.recv() => {
@@ -96,6 +105,10 @@ async fn stream(
                         if socket.send(WsMessage::Text(json.into())).await.is_err() { break; }
                     }
                     Ok(LiveEvent::Typing(event)) if event.conversation_id == conversation_id && event.sender_id != user_id => {
+                        let Ok(json) = serde_json::to_string(&event) else { break; };
+                        if socket.send(WsMessage::Text(json.into())).await.is_err() { break; }
+                    }
+                    Ok(LiveEvent::Wizz(event)) if event.conversation_id == conversation_id && event.sender_id != user_id => {
                         let Ok(json) = serde_json::to_string(&event) else { break; };
                         if socket.send(WsMessage::Text(json.into())).await.is_err() { break; }
                     }
@@ -117,6 +130,15 @@ async fn stream(
                     }
                     Some(Ok(WsMessage::Text(text))) => {
                         if text.len() > 128 { continue; }
+                        if text.as_str() == r#"{"type":"wizz"}"# {
+                            if last_wizz.elapsed() >= std::time::Duration::from_secs(10) {
+                                last_wizz = std::time::Instant::now();
+                                let _ = events().send(LiveEvent::Wizz(WizzEvent {
+                                    kind: "wizz", conversation_id, sender_id: user_id,
+                                }));
+                            }
+                            continue;
+                        }
                         if let Ok(input) = serde_json::from_str::<TypingInput>(&text) {
                             if input.kind == "typing" && last_typing.elapsed().as_millis() >= 700 {
                                 last_typing = std::time::Instant::now();
