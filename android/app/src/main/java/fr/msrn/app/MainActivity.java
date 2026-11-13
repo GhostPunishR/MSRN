@@ -36,6 +36,7 @@ public final class MainActivity extends Activity {
     private String activeContactName;
     private String sessionToken;
     private String nickname = "Moi";
+    private int historyRequestVersion;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +53,7 @@ public final class MainActivity extends Activity {
 
     private void showScreen(int layoutId) {
         events.close();
+        historyRequestVersion++;
         FrameLayout container = findViewById(R.id.screen_container);
         container.removeAllViews();
         View screen = LayoutInflater.from(this).inflate(layoutId, container, false);
@@ -106,7 +108,6 @@ public final class MainActivity extends Activity {
                     FrameLayout container = findViewById(R.id.screen_container);
                     if (container.findViewById(R.id.chat_history) != null) {
                         setupChat(container.getChildAt(0));
-                        connectEvents(container.getChildAt(0), token, id);
                     }
                 });
             } catch (Exception e) {
@@ -175,6 +176,17 @@ public final class MainActivity extends Activity {
     private void connectEvents(View screen, String token, String conversationId) {
         events.connect(token, conversationId, new ConversationEvents.Listener() {
             @Override
+            public void onConnected() {
+                runOnUiThread(() -> {
+                    if (screen.getParent() != null && token.equals(sessionToken)
+                        && conversationId.equals(activeConversationId)) {
+                        TextView status = screen.findViewById(R.id.chat_status);
+                        status.setText("Temps réel connecté.");
+                    }
+                });
+            }
+
+            @Override
             public void onMessageChanged() {
                 runOnUiThread(() -> {
                     if (screen.getParent() != null && token.equals(sessionToken)
@@ -201,6 +213,7 @@ public final class MainActivity extends Activity {
         if (sessionToken == null || activeConversationId == null) return;
         String token = sessionToken;
         String conversationId = activeConversationId;
+        int requestVersion = ++historyRequestVersion;
         TextView history = screen.findViewById(R.id.chat_history);
         TextView status = screen.findViewById(R.id.chat_status);
         Button send = screen.findViewById(R.id.send_message);
@@ -220,9 +233,10 @@ public final class MainActivity extends Activity {
                 }
                 runOnUiThread(() -> {
                     if (screen.getParent() == null || !token.equals(sessionToken)
-                        || !conversationId.equals(activeConversationId)) return;
+                        || !conversationId.equals(activeConversationId)
+                        || requestVersion != historyRequestVersion) return;
                     history.setText(text.length() == 0 ? "Aucun message." : text.toString());
-                    status.setText("100 derniers messages maximum. Actualisation manuelle.");
+                    status.setText("100 derniers messages. Temps réel actif si connecté.");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -488,6 +502,24 @@ public final class MainActivity extends Activity {
             String output = result;
             runOnUiThread(() -> status.setText(output));
         });
+    }
+
+    @Override
+    protected void onStop() {
+        events.close();
+        super.onStop();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        FrameLayout container = findViewById(R.id.screen_container);
+        if (container != null && container.findViewById(R.id.chat_history) != null
+            && sessionToken != null && activeConversationId != null) {
+            View screen = container.getChildAt(0);
+            connectEvents(screen, sessionToken, activeConversationId);
+            loadMessages(screen);
+        }
     }
 
     @Override
