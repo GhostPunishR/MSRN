@@ -52,6 +52,8 @@ public final class MainActivity extends Activity {
     private final Handler presenceHandler = new Handler(Looper.getMainLooper());
     private boolean foreground;
     private long lastTypingSent;
+    private long lastWizzSent;
+    private long lastWizzReceived;
     private final Handler typingHandler = new Handler(Looper.getMainLooper());
     private final Runnable stopTyping = () -> events.sendTyping(false);
     private final Runnable hideTyping = () -> {
@@ -360,16 +362,37 @@ public final class MainActivity extends Activity {
                 }
             });
         });
-        screen.findViewById(R.id.send_wizz).setOnClickListener(v -> {
-            status.setText("Wizz local uniquement, non transmis.");
-            Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-            if (vibrator != null && vibrator.hasVibrator()) {
-                vibrator.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
+        Button wizz = screen.findViewById(R.id.send_wizz);
+        wizz.setEnabled(activeConversationId != null && sessionToken != null);
+        wizz.setOnClickListener(v -> {
+            long now = android.os.SystemClock.elapsedRealtime();
+            if (now - lastWizzSent < 10000) {
+                status.setText("Patientez avant le prochain Wizz.");
+                return;
             }
-            screen.animate().translationX(14f).setDuration(70).withEndAction(
-                () -> screen.animate().translationX(0f).setDuration(70).start()
-            ).start();
+            if (events.sendWizz()) {
+                lastWizzSent = now;
+                status.setText("Wizz envoyé !");
+                playWizz(screen);
+            } else {
+                status.setText("Connexion temps réel requise pour envoyer un Wizz.");
+            }
         });
+    }
+
+    private void playWizz(View screen) {
+        if (screen.getParent() == null) return;
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator != null && vibrator.hasVibrator()) {
+            vibrator.vibrate(VibrationEffect.createOneShot(250, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
+        screen.animate().cancel();
+        screen.setTranslationX(0f);
+        screen.animate().translationX(14f).setDuration(70).withEndAction(
+            () -> screen.animate().translationX(-14f).setDuration(70).withEndAction(
+                () -> screen.animate().translationX(0f).setDuration(70).start()
+            ).start()
+        ).start();
     }
 
     private void connectEvents(View screen, String token, String conversationId) {
@@ -393,6 +416,18 @@ public final class MainActivity extends Activity {
                         loadMessages(screen);
                     }
                 });
+            }
+
+            @Override
+            public void onWizz() {
+                if (screen.getParent() == null || !token.equals(sessionToken)
+                    || !conversationId.equals(activeConversationId)) return;
+                long now = android.os.SystemClock.elapsedRealtime();
+                if (now - lastWizzReceived < 2000) return;
+                lastWizzReceived = now;
+                ((TextView) screen.findViewById(R.id.chat_status))
+                    .setText("Votre contact vous a envoyé un Wizz !");
+                playWizz(screen);
             }
 
             @Override
