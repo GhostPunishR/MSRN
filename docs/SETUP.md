@@ -185,3 +185,9 @@ Authenticated `PUT /profile/message` accepts `{"personal_message":"Disponible po
 Android allows editing the personal message on the Profile screen. The contacts list and conversation header show the selected contact's avatar, nickname, presence, and personal message. The conversation header uses the contact snapshot from the contacts list and does not yet receive live profile-change events. No user-provided HTML or image uploads are accepted.
 
 This milestone has not been compiled or integration-tested.
+
+## Ephemeral typing indicators
+
+The authenticated conversation WebSocket now accepts small JSON frames of the form `{"type":"typing","typing":true}` and `{"type":"typing","typing":false}`. The server verifies membership during the WebSocket handshake, attaches the authenticated sender UUID itself, and forwards events only to other subscribers of that conversation. It ignores malformed and oversized frames and rate-limits typing broadcasts to roughly one event per 700 milliseconds per connection. Typing is ephemeral and is never stored in PostgreSQL.
+
+Android sends a typing event at most once per 1.5 seconds during input, sends a stop event after 2.2 seconds without editing, and hides received indicators after 4 seconds even if a stop event was missed. Typing events are not a guarantee that a message will be sent. This implementation uses a process-local broadcast channel, so typing does not yet work between server replicas. Compilation and integration tests remain deferred.
