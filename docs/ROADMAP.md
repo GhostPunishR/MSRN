@@ -14,3 +14,6 @@ Run builds and tests locally only. Never configure or trigger remote CI.
 
 ## Release
 Android-first and France-first. MSRN is a provisional name pending trademark review.
+
+## Real-time prototype
+Authenticated conversation-scoped WebSocket notifications are now wired to Android. Messages remain persisted and loaded over HTTP. Automatic reconnect, multi-server delivery, and integration tests are still pending.
