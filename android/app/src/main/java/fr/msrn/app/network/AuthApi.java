@@ -60,6 +60,16 @@ public final class AuthApi {
         return new JSONArray(requestText("GET", "/conversations/" + conversationId + "/messages", null, token));
     }
 
+    public static JSONObject messagePage(String token, String conversationId, String before) throws Exception {
+        if (!conversationId.matches("[0-9a-fA-F-]{36}")) throw new IllegalArgumentException("Invalid conversation ID");
+        String path = "/conversations/" + conversationId + "/messages/page?limit=50";
+        if (before != null) {
+            if (!before.matches("[0-9a-fA-F-]{36}")) throw new IllegalArgumentException("Invalid cursor");
+            path += "&before=" + before;
+        }
+        return request("GET", path, null, token);
+    }
+
     public static JSONObject sendMessage(String token, String conversationId, String message) throws Exception {
         if (!conversationId.matches("[0-9a-fA-F-]{36}")) throw new IllegalArgumentException("Invalid conversation ID");
         JSONObject body = new JSONObject();
