@@ -241,7 +241,7 @@ The server-side broadcast event enum was also corrected to implement `Clone`, as
 Run these checks locally on a development computer. Do not enable GitHub Actions or remote build services.
 
 - Rust unit tests: from `rust/`, run `cargo test -p msrn-server`. The WebSocket tests cover the serialized message, typing, and Wizz event contracts; existing pagination tests cover page size bounds. Database-backed endpoints still require separate integration tests.
-- Android JVM tests: from `android/`, run `./gradlew :app:testDebugUnitTest` with the Android SDK and JDK 17 installed. The new tests cover emoji conversion, palette uniqueness, PostgreSQL timestamp offsets, timezone conversion, and midnight rollover.
+- Android JVM tests: from `android/`, run `gradle :app:testDebugUnitTest` with Gradle 8.9, the Android SDK, and JDK 17 installed. The repository does not contain a Gradle wrapper. The tests cover emoji conversion, palette uniqueness, PostgreSQL timestamp offsets, timezone conversion, and midnight rollover.
 - Database integration: start a disposable PostgreSQL instance, apply all migrations in order, register two test accounts, create a friendship and direct conversation, send messages in both directions, verify `GET /contacts` unread counts, then verify `POST /conversations/{id}/read` advances only the caller's read cursor and rejects foreign messages.
 - Android device verification: sign in on two devices/emulators, check chat history, unread badges, typing, Wizz, emoji insertion, local dates, and scroll retention when loading older pages.
 
@@ -256,3 +256,19 @@ Executed successfully using standalone Java harnesses reproducing the checked pr
 - `javac` and `java`: five offset-aware timestamp parsing and Europe/Paris conversion cases passed, including UTC `Z`, `+00`, `+01`, `+0000`, and a midnight rollover.
 
 These are smoke checks on reproduced Java logic, not execution of the repository's JUnit test classes or an Android build. No Rust unit tests, SQL integration tests, emulator tests, or end-to-end two-client tests were executed. Do not treat this record as a full quality gate pass. Follow the targeted local commands in the previous section when the required toolchains become available.
+
+## Verification record: 2026-11-13 (prepared development environment)
+
+The development environment now has Rust 1.100.0, Temurin JDK 17.0.21, Gradle 8.9, Android SDK 35, build-tools 34.0.0, and a local PostgreSQL 16 container. All commands below ran locally; no GitHub Actions, hosted CI, or remote build service was used.
+
+The first Android build identified an invalid `android:horizontalScrollBarEnabled` attribute in the emoji palette's `HorizontalScrollView`. Replacing it with `android:scrollbars="none"` preserves the intended hidden scrollbar and allows Android resource linking to complete.
+
+Executed successfully:
+
+- `cargo test --manifest-path rust/Cargo.toml --workspace`: all 10 Rust unit tests passed during environment preparation.
+- `gradle -p android --no-daemon --max-workers=2 :app:assembleDebug :app:testDebugUnitTest`: the debug APK was generated and all 5 existing JUnit tests passed through Gradle after the XML correction.
+- Server startup against local PostgreSQL: all 8 SQL migrations applied successfully, and `GET http://127.0.0.1:3000/health` returned HTTP 200 with `{"status":"ok","service":"msrn-server"}`.
+
+The APK is generated at `android/app/build/outputs/apk/debug/app-debug.apk`; the Android test report is at `android/app/build/reports/tests/testDebugUnitTest/index.html`.
+
+No emulator/device run or end-to-end two-client messaging test was performed. Successful migrations and the health check do not replace database-backed API integration tests.
