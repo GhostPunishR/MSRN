@@ -32,7 +32,6 @@ struct TypingEvent {
     typing: bool,
 }
 
-#[derive(Clone)]
 #[derive(Clone, Serialize)]
 struct WizzEvent {
     #[serde(rename = "type")]
@@ -41,6 +40,7 @@ struct WizzEvent {
     sender_id: Uuid,
 }
 
+#[derive(Clone)]
 enum LiveEvent { Message(MessageEvent), Typing(TypingEvent), Wizz(WizzEvent) }
 
 #[derive(Deserialize)]
