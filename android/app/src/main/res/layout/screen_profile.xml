@@ -6,7 +6,13 @@
     android:padding="20dp" android:orientation="vertical">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Mon profil" android:textSize="24sp" android:textStyle="bold" android:textColor="#172B4D" />
     <EditText android:id="@+id/profile_name" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:hint="Pseudo" android:singleLine="true" android:maxLength="80" />
-    <Button android:id="@+id/save_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enregistrer localement" android:textAllCaps="false" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Choisir un avatar" android:layout_marginTop="12dp" />
+    <Spinner android:id="@+id/avatar_spinner" android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <TextView android:id="@+id/profile_status" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:text="Connectez-vous pour synchroniser votre profil." />
+    <Button android:id="@+id/save_profile" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Enregistrer sur MSRN" android:textAllCaps="false" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
         android:text="Mon statut de présence" android:layout_marginTop="16dp" />
     <Spinner android:id="@+id/presence_spinner" android:layout_width="match_parent"
